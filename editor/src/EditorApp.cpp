@@ -1,11 +1,13 @@
 #include "editor/EditorApp.hpp"
 #include "editor/commands/TransformCommand.hpp"
+#include "engine/ecs/Components.hpp"
 
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_wgpu.h>
 #include <spdlog/spdlog.h>
 #include <cstdio>
+#include <algorithm>
 
 namespace editor {
 
@@ -41,13 +43,40 @@ bool EditorApp::initialize(SDL_Window* window) {
 
     audio_.initialize();
 
-    world_.createEntity("Player");
-    world_.createEntity("Ground");
+    if (!world_.loadScene("samples/platformer/scenes/level_01.scene.json")) {
+        auto player = world_.createEntity("Player");
+        auto& pTransform = world_.add<engine::TransformComponent>(player);
+        pTransform.position = {0.0f, 3.0f, 0.0f};
+        world_.add<engine::SpriteComponent>(player, engine::core::Vec2{48.0f, 64.0f});
+        auto& pRb = world_.add<engine::RigidBody2DComponent>(player);
+        pRb.type = engine::RigidBody2DType::Dynamic;
+        pRb.fixedRotation = true;
+        auto& pCol = world_.add<engine::Collider2DComponent>(player);
+        pCol.type = engine::Collider2DType::Capsule;
+        pCol.size = {0.8f, 1.6f};
+        pCol.radius = 0.4f;
+        auto& pCc = world_.add<engine::CharacterController2DComponent>(player);
+        pCc.maxSpeed = 350.0f;
+        pCc.jumpVelocity = 750.0f;
+
+        auto ground = world_.createEntity("Ground");
+        auto& gTransform = world_.add<engine::TransformComponent>(ground);
+        gTransform.position = {0.0f, -2.0f, 0.0f};
+        world_.add<engine::SpriteComponent>(ground, engine::core::Vec2{2000.0f, 100.0f});
+        auto& gRb = world_.add<engine::RigidBody2DComponent>(ground);
+        gRb.type = engine::RigidBody2DType::Static;
+        auto& gCol = world_.add<engine::Collider2DComponent>(ground);
+        gCol.type = engine::Collider2DType::Box;
+        gCol.size = {2000.0f, 100.0f};
+    }
 
     selectedEntity_ = world_.getEntityByName("Player");
 
     lua_.initialize(world_, input_, audio_);
     lua_.loadScript("samples/platformer/scripts/player.lua");
+
+    camera_.setZoom(50.0f); // 50 pixels per meter/unit
+    camera_.setDeadZone(16.0f);
 
     initialized_ = true;
 
@@ -59,6 +88,7 @@ void EditorApp::shutdown() {
         return;
     }
 
+    physics_.shutdown();
     lua_.shutdown();
     audio_.shutdown();
 
@@ -78,7 +108,9 @@ void EditorApp::handleEvent(const SDL_Event& event) {
         const bool ctrl = (event.key.mod & SDL_KMOD_CTRL) != 0;
         const bool shift = (event.key.mod & SDL_KMOD_SHIFT) != 0;
 
-        if (ctrl && event.key.key == SDLK_Z) {
+        if (event.key.key == SDLK_F1) {
+            showColliders_ = !showColliders_;
+        } else if (ctrl && event.key.key == SDLK_Z) {
             undo_.undo();
         } else if (ctrl && event.key.key == SDLK_Y) {
             undo_.redo();
@@ -101,18 +133,23 @@ void EditorApp::enterPlayMode() {
     playWorld_ = world_.clone();
     mode_ = EditorMode::Play;
 
+    physics_.initialize(glm::vec2(0.0f, -9.81f));
+    physics_.syncFromEcs(*playWorld_);
+
     lua_.initialize(*playWorld_, input_, audio_);
     lua_.reload();
 
     selectedEntity_ = playWorld_->getEntityByName("Player");
 
-    spdlog::info("Play Mode started.");
+    spdlog::info("Play Mode started with Box2D physics simulation.");
 }
 
 void EditorApp::exitPlayMode() {
     if (mode_ != EditorMode::Play) {
         return;
     }
+
+    physics_.shutdown();
 
     world_.restoreFrom(editWorld_);
     playWorld_.reset();
@@ -123,11 +160,22 @@ void EditorApp::exitPlayMode() {
 
     selectedEntity_ = world_.getEntityByName("Player");
 
-    spdlog::info("Play Mode stopped. Edit scene restored.");
+    spdlog::info("Play Mode stopped. Physics shutdown, Edit scene restored.");
 }
 
 void EditorApp::newFrame(double delta) {
-    if (mode_ == EditorMode::Play) {
+    if (mode_ == EditorMode::Play && playWorld_.has_value()) {
+        characterController_.update(*playWorld_, input_, physics_, static_cast<float>(delta));
+        physics_.step(static_cast<float>(delta), 4);
+        physics_.syncToEcs(*playWorld_);
+
+        auto player = playWorld_->getEntityByName("Player");
+        if (player.isValid()) {
+            if (const auto* transform = playWorld_->tryGet<engine::TransformComponent>(player)) {
+                camera_.follow(glm::vec2(transform->position.x, transform->position.y), static_cast<float>(delta));
+            }
+        }
+
         lua_.callOnUpdate(delta);
     }
 
@@ -140,6 +188,7 @@ void EditorApp::render() {
     drawDockspace();
     drawHierarchy();
     drawInspector();
+    drawDebugColliders();
 
     ImGui::Render();
 }
@@ -276,6 +325,67 @@ void EditorApp::drawInspector() {
     }
 
     ImGui::Separator();
+    ImGui::Text("Physics 2D (Box2D v3)");
+    ImGui::Checkbox("Show Colliders (F1)", &showColliders_);
+
+    if (auto* rb = activeWorld().tryGet<engine::RigidBody2DComponent>(selectedEntity_)) {
+        const char* types[] = { "Static", "Kinematic", "Dynamic" };
+        int currentType = static_cast<int>(rb->type);
+        if (ImGui::Combo("Body Type", &currentType, types, 3)) {
+            rb->type = static_cast<engine::RigidBody2DType>(currentType);
+        }
+        ImGui::DragFloat("Gravity Scale", &rb->gravityScale, 0.1f, -10.0f, 10.0f);
+        ImGui::DragFloat("Linear Damping", &rb->linearDamping, 0.05f, 0.0f, 50.0f);
+        ImGui::Checkbox("Fixed Rotation", &rb->fixedRotation);
+        ImGui::Checkbox("Is Sensor", &rb->isSensor);
+    } else {
+        if (ImGui::Button("Add RigidBody2D")) {
+            activeWorld().add<engine::RigidBody2DComponent>(selectedEntity_);
+        }
+    }
+
+    if (auto* col = activeWorld().tryGet<engine::Collider2DComponent>(selectedEntity_)) {
+        const char* colTypes[] = { "Box", "Circle", "Capsule" };
+        int currentCol = static_cast<int>(col->type);
+        if (ImGui::Combo("Collider Type", &currentCol, colTypes, 3)) {
+            col->type = static_cast<engine::Collider2DType>(currentCol);
+        }
+        ImGui::DragFloat2("Collider Size", &col->size.x, 0.1f, 0.01f, 10000.0f);
+        ImGui::DragFloat("Radius", &col->radius, 0.05f, 0.01f, 500.0f);
+        ImGui::DragFloat("Density", &col->density, 0.1f, 0.0f, 100.0f);
+        ImGui::DragFloat("Friction", &col->friction, 0.05f, 0.0f, 1.0f);
+        ImGui::DragFloat("Restitution", &col->restitution, 0.05f, 0.0f, 1.0f);
+        ImGui::Checkbox("Is Trigger", &col->isTrigger);
+    } else {
+        if (ImGui::Button("Add Collider2D")) {
+            activeWorld().add<engine::Collider2DComponent>(selectedEntity_);
+        }
+    }
+
+    if (auto* cc = activeWorld().tryGet<engine::CharacterController2DComponent>(selectedEntity_)) {
+        ImGui::Separator();
+        ImGui::Text("Character Controller 2D");
+        ImGui::DragFloat("Max Speed", &cc->maxSpeed, 5.0f, 0.0f, 2000.0f);
+        ImGui::DragFloat("Acceleration", &cc->acceleration, 50.0f, 0.0f, 20000.0f);
+        ImGui::DragFloat("Jump Velocity", &cc->jumpVelocity, 10.0f, 0.0f, 3000.0f);
+        ImGui::DragFloat("Coyote Time", &cc->coyoteTime, 0.01f, 0.0f, 1.0f);
+        ImGui::DragFloat("Jump Buffer", &cc->jumpBufferTime, 0.01f, 0.0f, 1.0f);
+        ImGui::Text("Grounded: %s", cc->grounded ? "TRUE" : "FALSE");
+    } else {
+        if (ImGui::Button("Add Character Controller")) {
+            activeWorld().add<engine::CharacterController2DComponent>(selectedEntity_);
+        }
+    }
+
+    ImGui::Separator();
+    ImGui::Text("Camera 2D");
+    float zoom = camera_.zoom();
+    if (ImGui::SliderFloat("Camera Zoom", &zoom, 5.0f, 200.0f)) {
+        camera_.setZoom(zoom);
+    }
+    ImGui::Text("Camera Pos: (%.1f, %.1f)", camera_.position().x, camera_.position().y);
+
+    ImGui::Separator();
     ImGui::Text("Scripting & Audio");
 
     if (ImGui::Button("Reload Lua")) {
@@ -289,6 +399,63 @@ void EditorApp::drawInspector() {
     }
 
     ImGui::End();
+}
+
+void EditorApp::drawDebugColliders() {
+    if (!showColliders_) {
+        return;
+    }
+
+    ImDrawList* drawList = ImGui::GetForegroundDrawList();
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    const ImVec2 screenCenter(vp->WorkPos.x + vp->WorkSize.x * 0.5f, vp->WorkPos.y + vp->WorkSize.y * 0.5f);
+    const float zoom = camera_.zoom();
+
+    auto toScreen = [&](glm::vec2 worldPos) -> ImVec2 {
+        glm::vec2 rel = (worldPos - camera_.position()) * zoom;
+        return ImVec2(screenCenter.x + rel.x, screenCenter.y - rel.y);
+    };
+
+    activeWorld().forEach<engine::TransformComponent, engine::Collider2DComponent>(
+        [&](engine::Entity entity, engine::TransformComponent& transform, engine::Collider2DComponent& collider) {
+            const glm::vec2 center{transform.position.x, transform.position.y};
+
+            ImU32 color = IM_COL32(0, 220, 255, 220);
+            if (collider.isTrigger) {
+                color = IM_COL32(255, 255, 0, 220);
+            } else if (auto* cc = activeWorld().tryGet<engine::CharacterController2DComponent>(entity)) {
+                color = cc->grounded ? IM_COL32(0, 255, 0, 240) : IM_COL32(255, 60, 60, 240);
+            } else if (auto* rb = activeWorld().tryGet<engine::RigidBody2DComponent>(entity)) {
+                if (rb->type == engine::RigidBody2DType::Dynamic) {
+                    color = IM_COL32(255, 80, 80, 220);
+                }
+            }
+
+            switch (collider.type) {
+                case engine::Collider2DType::Circle: {
+                    ImVec2 p = toScreen(center);
+                    drawList->AddCircle(p, collider.radius * zoom, color, 32, 2.0f);
+                    break;
+                }
+                case engine::Collider2DType::Capsule: {
+                    ImVec2 p1 = toScreen(glm::vec2(center.x, center.y - collider.size.y * 0.5f));
+                    ImVec2 p2 = toScreen(glm::vec2(center.x, center.y + collider.size.y * 0.5f));
+                    float r = collider.radius * zoom;
+                    drawList->AddLine(ImVec2(p1.x - r, p1.y), ImVec2(p2.x - r, p2.y), color, 2.0f);
+                    drawList->AddLine(ImVec2(p1.x + r, p1.y), ImVec2(p2.x + r, p2.y), color, 2.0f);
+                    drawList->AddCircle(p1, r, color, 16, 2.0f);
+                    drawList->AddCircle(p2, r, color, 16, 2.0f);
+                    break;
+                }
+                default: {
+                    ImVec2 minP = toScreen(glm::vec2(center.x - collider.size.x * 0.5f, center.y + collider.size.y * 0.5f));
+                    ImVec2 maxP = toScreen(glm::vec2(center.x + collider.size.x * 0.5f, center.y - collider.size.y * 0.5f));
+                    drawList->AddRect(minP, maxP, color, 0.0f, 0, 2.0f);
+                    break;
+                }
+            }
+        }
+    );
 }
 
 bool EditorApp::wantCaptureInput() const {

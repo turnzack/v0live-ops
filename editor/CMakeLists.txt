@@ -11,6 +11,7 @@ target_include_directories(engine_editor PRIVATE
 target_link_libraries(engine_editor PRIVATE
     engine_core
     engine_ecs
+    engine_physics2d
     engine_input
     engine_renderer
     engine_audio

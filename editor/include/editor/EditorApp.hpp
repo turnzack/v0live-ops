@@ -8,6 +8,9 @@
 #include "engine/audio/AudioEngine.hpp"
 #include "engine/ecs/World.hpp"
 #include "engine/input/InputManager.hpp"
+#include "engine/physics2d/PhysicsWorld2D.hpp"
+#include "engine/physics2d/CharacterController2D.hpp"
+#include "engine/renderer/Camera2D.hpp"
 #include "engine/renderer/GPUContext.hpp"
 #include "engine/renderer/SpriteBatch.hpp"
 #include "engine/scripting/LuaRuntime.hpp"
@@ -37,6 +40,7 @@ private:
     void drawDockspace();
     void drawHierarchy();
     void drawInspector();
+    void drawDebugColliders();
 
     [[nodiscard]] engine::ecs::World& activeWorld() noexcept {
         return (mode_ == EditorMode::Play && playWorld_.has_value()) ? *playWorld_ : world_;
@@ -52,6 +56,11 @@ private:
     engine::AudioEngine audio_;
     engine::LuaRuntime lua_;
     UndoManager undo_;
+
+    engine::PhysicsWorld2D physics_;
+    engine::CharacterController2D characterController_;
+    engine::Camera2D camera_;
+    bool showColliders_ = false;
 
     engine::GPUContext gpu_;
     engine::SpriteBatch batch_;
