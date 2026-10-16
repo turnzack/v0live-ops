@@ -178,6 +178,24 @@ bool World::loadScene(std::string_view filePath) {
     return true;
 }
 
+World World::clone() const {
+    World copy;
+    copy.m_nextEntityId = m_nextEntityId;
+    copy.m_entities = m_entities;
+    copy.m_alive = m_alive;
+    copy.m_guidToEntity = m_guidToEntity;
+    copy.m_componentPools = m_componentPools;
+    return copy;
+}
+
+void World::restoreFrom(const World& source) {
+    m_nextEntityId = source.m_nextEntityId;
+    m_entities = source.m_entities;
+    m_alive = source.m_alive;
+    m_guidToEntity = source.m_guidToEntity;
+    m_componentPools = source.m_componentPools;
+}
+
 void World::clear() {
     m_entities.clear();
     m_alive.clear();

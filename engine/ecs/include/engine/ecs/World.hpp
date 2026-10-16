@@ -109,6 +109,9 @@ public:
     bool saveScene(std::string_view filePath);
     bool loadScene(std::string_view filePath);
 
+    [[nodiscard]] World clone() const;
+    void restoreFrom(const World& source);
+
     void clear();
 
 private:
