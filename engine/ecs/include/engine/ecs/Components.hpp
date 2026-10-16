@@ -70,6 +70,8 @@ struct MovementComponent {
     explicit MovementComponent(float inSpeed) : speed(inSpeed) {}
 };
 
+#include <glm/glm.hpp>
+
 // 6. Hiérarchie Scène (Relations Parent / Enfants)
 struct HierarchyComponent {
     EntityId parent{kInvalidEntityId};
@@ -78,4 +80,52 @@ struct HierarchyComponent {
     HierarchyComponent() = default;
 };
 
+// 7. Physique 2D (Box2D v3)
+enum class RigidBody2DType : std::uint8_t { Static, Kinematic, Dynamic };
+
+struct RigidBody2DComponent {
+    RigidBody2DType type = RigidBody2DType::Dynamic;
+    float gravityScale = 1.0f;
+    float linearDamping = 0.0f;
+    bool fixedRotation = false;
+    bool isSensor = false;
+};
+
+enum class Collider2DType : std::uint8_t { Box, Circle, Capsule };
+
+struct Collider2DComponent {
+    Collider2DType type = Collider2DType::Box;
+    glm::vec2 size = glm::vec2(1.0f);
+    float radius = 0.5f;
+    float density = 1.0f;
+    float friction = 0.3f;
+    float restitution = 0.0f;
+    std::uint64_t categoryBits = 1;
+    std::uint64_t maskBits = UINT64_MAX;
+    bool isTrigger = false;
+    bool enableContactEvents = false;
+    bool enableSensorEvents = false;
+};
+
+struct CharacterController2DComponent {
+    float maxSpeed = 350.0f;
+    float acceleration = 2500.0f;
+    float jumpVelocity = 750.0f;
+    float coyoteTime = 0.12f;
+    float jumpBufferTime = 0.12f;
+    float maxSlopeAngle = 45.0f;
+    bool grounded = false;
+    bool jumping = false;
+    float coyoteTimer = 0.0f;
+    float jumpBufferTimer = 0.0f;
+};
+
 } // namespace engine::ecs
+
+namespace engine {
+    using ecs::RigidBody2DType;
+    using ecs::RigidBody2DComponent;
+    using ecs::Collider2DType;
+    using ecs::Collider2DComponent;
+    using ecs::CharacterController2DComponent;
+} // namespace engine

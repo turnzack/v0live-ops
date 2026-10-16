@@ -1,44 +1,55 @@
 {
+  "format": "engine.scene",
   "version": 1,
-  "sceneName": "Level_01_Platformer",
-  "sceneGuid": "c8a41285-d6eb-42f7-b248-c87fa962e08a",
   "entities": [
     {
-      "id": "e4f8d9b2-3c1a-4e89-a256-829d5b7a1c3e",
-      "tag": "Player",
-      "transform": {
-        "position": {"x": 100.0000, "y": 200.0000, "z": 0.0000},
-        "rotation": {"x": 0.0000, "y": 0.0000, "z": 0.0000},
-        "scale": {"x": 1.0000, "y": 1.0000, "z": 1.0000}
-      },
-      "sprite": {
-        "textureGuid": "00000000-0000-0000-0000-000000000000",
-        "size": {"x": 32.0000, "y": 48.0000},
-        "colorTint": {"x": 0.2000, "y": 0.8000, "z": 1.0000, "w": 1.0000},
-        "sortingLayer": 10,
-        "flipX": false,
-        "flipY": false
-      },
-      "movement": {
-        "speed": 220.0000,
-        "velocity": {"x": 0.0000, "y": 0.0000}
+      "guid": "11111111-1111-4111-8111-111111111111",
+      "name": "Player",
+      "components": {
+        "Transform": {
+          "position": [0, 3, 0],
+          "rotation": [0, 0, 0],
+          "scale": [1, 1, 1]
+        },
+        "SpriteComponent": {
+          "size": [48, 64],
+          "sortingLayer": 10
+        },
+        "RigidBody2DComponent": {
+          "type": "Dynamic",
+          "fixedRotation": true
+        },
+        "Collider2DComponent": {
+          "type": "Capsule",
+          "size": [0.8, 1.6],
+          "radius": 0.4
+        },
+        "CharacterController2DComponent": {
+          "maxSpeed": 350,
+          "jumpVelocity": 750
+        }
       }
     },
     {
-      "id": "7b5c8d1e-9a2f-45b6-9e12-3489c7d1e56a",
-      "tag": "Ground_Platform",
-      "transform": {
-        "position": {"x": 400.0000, "y": 550.0000, "z": 0.0000},
-        "rotation": {"x": 0.0000, "y": 0.0000, "z": 0.0000},
-        "scale": {"x": 800.0000, "y": 40.0000, "z": 1.0000}
-      },
-      "sprite": {
-        "textureGuid": "00000000-0000-0000-0000-000000000000",
-        "size": {"x": 1.0000, "y": 1.0000},
-        "colorTint": {"x": 0.3000, "y": 0.7000, "z": 0.3000, "w": 1.0000},
-        "sortingLayer": 1,
-        "flipX": false,
-        "flipY": false
+      "guid": "22222222-2222-4222-8222-222222222222",
+      "name": "Ground",
+      "components": {
+        "Transform": {
+          "position": [0, -2, 0],
+          "rotation": [0, 0, 0],
+          "scale": [1, 1, 1]
+        },
+        "SpriteComponent": {
+          "size": [2000, 100],
+          "sortingLayer": 0
+        },
+        "RigidBody2DComponent": {
+          "type": "Static"
+        },
+        "Collider2DComponent": {
+          "type": "Box",
+          "size": [2000, 100]
+        }
       }
     }
   ]
