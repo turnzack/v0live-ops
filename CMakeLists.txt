@@ -27,6 +27,7 @@ endif()
 # Core modules
 add_subdirectory(engine/core)
 add_subdirectory(engine/ecs)
+add_subdirectory(runtime)
 
 # Tests
 if(ENGINE_BUILD_TESTS)

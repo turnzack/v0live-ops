@@ -4,6 +4,7 @@ add_executable(unit_tests
     test_ecs.cpp
     TestLog.cpp
     TestMath.cpp
+    TestTimeAndConfig.cpp
 )
 
 target_link_libraries(unit_tests PRIVATE
