@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "engine-suite",
+  "version-string": "0.1.0",
+  "description": "Game creation engine suite and tools monorepo",
+  "dependencies": [
+    "spdlog",
+    "glm",
+    "nlohmann-json",
+    "doctest",
+    "flecs",
+    "box2d",
+    "lua",
+    "sol2",
+    "tracy",
+    {
+      "name": "imgui",
+      "features": [
+        "docking-experimental"
+      ]
+    }
+  ]
+}

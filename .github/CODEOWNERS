@@ -1,0 +1,25 @@
+# Global owners
+* @equipe-core
+
+# Dev A: Core, Renderer & WebGPU
+/engine/core/       @dev-a
+/engine/renderer/   @dev-a
+/runtime/           @dev-a
+
+# Dev B: Simulation, Gameplay & ECS
+/engine/ecs/        @dev-b
+/engine/physics2d/  @dev-b
+/engine/physics3d/  @dev-b
+/engine/scripting/  @dev-b
+/engine/audio/      @dev-b
+/samples/           @dev-b
+
+# Dev C: Outils, Pipeline, Éditeur & CI
+/editor/            @dev-c
+/tools/             @dev-c
+/exporters/         @dev-c
+/command-center/    @dev-c
+/.github/           @dev-c
+/CMakeLists.txt     @dev-c @dev-a
+/CMakePresets.json  @dev-c @dev-a
+/vcpkg.json         @dev-c @dev-a

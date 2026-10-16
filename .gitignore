@@ -1,0 +1,36 @@
+# Build directories
+build/
+bin/
+lib/
+out/
+dist/
+
+# CMake artifacts
+CMakeUserPresets.json
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# vcpkg
+vcpkg_installed/
+.vcpkg/
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+*.log
+engine.log

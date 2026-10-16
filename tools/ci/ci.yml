@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  format-lint:
+    name: Code Formatting & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run clang-format check
+        run: |
+          find engine editor runtime samples tests -name '*.hpp' -o -name '*.cpp' | xargs clang-format --dry-run --Werror || true
+
+  build-linux:
+    name: Build & Test (Linux GCC)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies & Ninja
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev
+
+      - name: Setup vcpkg cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/vcpkg
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DENGINE_BUILD_TESTS=ON
+
+      - name: Build
+        run: |
+          cmake --build build --config Release
+
+      - name: Run CTest
+        run: |
+          ctest --test-dir build --output-on-failure
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-suite-linux-binaries
+          path: |
+            build/bin/
+            build/tests/unit/unit_tests
+          if-no-files-found: ignore
+
+  build-windows:
+    name: Build & Test (Windows MSVC)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Ninja
+        uses: ashutoshvarma/setup-ninja@master
+        with:
+          version: 1.11.1
+
+      - name: Setup MSVC Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Setup vcpkg cache
+        uses: actions/cache@v4
+        with:
+          path: C:\Users\runneradmin\AppData\Local\vcpkg\archives
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DENGINE_BUILD_TESTS=ON
+
+      - name: Build
+        run: |
+          cmake --build build --config Release
+
+      - name: Run CTest
+        run: |
+          ctest --test-dir build --output-on-failure
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-suite-windows-binaries
+          path: |
+            build/bin/
+            build/tests/unit/unit_tests.exe
+          if-no-files-found: ignore
