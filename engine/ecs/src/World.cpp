@@ -80,6 +80,7 @@ bool World::isValid(const Entity& entity) const noexcept {
 
 bool World::saveScene(std::string_view filePath) {
     nlohmann::json root;
+    root["format"] = "engine.scene";
     root["version"] = 1;
     root["entities"] = nlohmann::json::array();
 
@@ -89,15 +90,25 @@ bool World::saveScene(std::string_view filePath) {
         nlohmann::json entityJson;
         if (const auto* idComp = getComponent<IDComponent>(id)) {
             entityJson["id"] = idComp->id.asString();
+            entityJson["guid"] = idComp->id.asString();
         }
         if (const auto* tag = getComponent<TagComponent>(id)) {
             entityJson["tag"] = tag->tag;
+            entityJson["name"] = tag->name;
         }
+
+        nlohmann::json compsJson;
+
         if (const auto* transform = getComponent<TransformComponent>(id)) {
             entityJson["transform"] = {
                 {"position", {{"x", transform->position.x}, {"y", transform->position.y}, {"z", transform->position.z}}},
                 {"rotation", {{"x", transform->rotation.x}, {"y", transform->rotation.y}, {"z", transform->rotation.z}}},
                 {"scale", {{"x", transform->scale.x}, {"y", transform->scale.y}, {"z", transform->scale.z}}}
+            };
+            compsJson["Transform"] = {
+                {"position", {transform->position.x, transform->position.y, transform->position.z}},
+                {"rotation", {transform->rotation.x, transform->rotation.y, transform->rotation.z}},
+                {"scale", {transform->scale.x, transform->scale.y, transform->scale.z}}
             };
         }
         if (const auto* sprite = getComponent<SpriteComponent>(id)) {
@@ -108,6 +119,10 @@ bool World::saveScene(std::string_view filePath) {
                 {"flipX", sprite->flipX},
                 {"flipY", sprite->flipY}
             };
+            compsJson["SpriteComponent"] = {
+                {"size", {sprite->size.x, sprite->size.y}},
+                {"sortingLayer", sprite->sortingLayer}
+            };
         }
         if (const auto* movement = getComponent<MovementComponent>(id)) {
             entityJson["movement"] = {
@@ -115,6 +130,41 @@ bool World::saveScene(std::string_view filePath) {
                 {"velocity", {{"x", movement->velocity.x}, {"y", movement->velocity.y}}}
             };
         }
+        if (const auto* rb = getComponent<RigidBody2DComponent>(id)) {
+            std::string typeStr = (rb->type == RigidBody2DType::Static) ? "Static" :
+                                  (rb->type == RigidBody2DType::Kinematic) ? "Kinematic" : "Dynamic";
+            compsJson["RigidBody2DComponent"] = {
+                {"type", typeStr},
+                {"gravityScale", rb->gravityScale},
+                {"linearDamping", rb->linearDamping},
+                {"fixedRotation", rb->fixedRotation},
+                {"isSensor", rb->isSensor}
+            };
+        }
+        if (const auto* col = getComponent<Collider2DComponent>(id)) {
+            std::string typeStr = (col->type == Collider2DType::Circle) ? "Circle" :
+                                  (col->type == Collider2DType::Capsule) ? "Capsule" : "Box";
+            compsJson["Collider2DComponent"] = {
+                {"type", typeStr},
+                {"size", {col->size.x, col->size.y}},
+                {"radius", col->radius},
+                {"density", col->density},
+                {"friction", col->friction},
+                {"restitution", col->restitution},
+                {"isTrigger", col->isTrigger}
+            };
+        }
+        if (const auto* cc = getComponent<CharacterController2DComponent>(id)) {
+            compsJson["CharacterController2DComponent"] = {
+                {"maxSpeed", cc->maxSpeed},
+                {"acceleration", cc->acceleration},
+                {"jumpVelocity", cc->jumpVelocity},
+                {"coyoteTime", cc->coyoteTime},
+                {"jumpBufferTime", cc->jumpBufferTime}
+            };
+        }
+
+        entityJson["components"] = compsJson;
         root["entities"].push_back(entityJson);
     }
 
@@ -139,39 +189,114 @@ bool World::loadScene(std::string_view filePath) {
 
     if (root.contains("entities") && root["entities"].is_array()) {
         for (const auto& entityJson : root["entities"]) {
-            std::string name = entityJson.value("tag", "Entity");
-            std::string idStr = entityJson.value("id", "");
+            std::string name = entityJson.value("name", entityJson.value("tag", "Entity"));
+            std::string idStr = entityJson.value("guid", entityJson.value("id", ""));
             core::GUID guid(idStr);
 
             Entity ent = createEntity(name, guid);
-            if (entityJson.contains("transform")) {
-                const auto& t = entityJson["transform"];
+
+            // 1. Direct transform or under components
+            const bool hasComps = entityJson.contains("components") && entityJson["components"].is_object();
+            const auto& comps = hasComps ? entityJson["components"] : entityJson;
+
+            if (comps.contains("Transform") || comps.contains("transform")) {
+                const auto& t = comps.contains("Transform") ? comps["Transform"] : comps["transform"];
                 auto* comp = ent.getComponent<TransformComponent>();
                 if (comp) {
                     if (t.contains("position")) {
-                        comp->position = {t["position"].value("x", 0.0f), t["position"].value("y", 0.0f), t["position"].value("z", 0.0f)};
+                        if (t["position"].is_array() && t["position"].size() >= 3) {
+                            comp->position = {t["position"][0].get<float>(), t["position"][1].get<float>(), t["position"][2].get<float>()};
+                        } else if (t["position"].is_object()) {
+                            comp->position = {t["position"].value("x", 0.0f), t["position"].value("y", 0.0f), t["position"].value("z", 0.0f)};
+                        }
                     }
                     if (t.contains("rotation")) {
-                        comp->rotation = {t["rotation"].value("x", 0.0f), t["rotation"].value("y", 0.0f), t["rotation"].value("z", 0.0f)};
+                        if (t["rotation"].is_array() && t["rotation"].size() >= 3) {
+                            comp->rotation = {t["rotation"][0].get<float>(), t["rotation"][1].get<float>(), t["rotation"][2].get<float>()};
+                        } else if (t["rotation"].is_object()) {
+                            comp->rotation = {t["rotation"].value("x", 0.0f), t["rotation"].value("y", 0.0f), t["rotation"].value("z", 0.0f)};
+                        }
                     }
                     if (t.contains("scale")) {
-                        comp->scale = {t["scale"].value("x", 1.0f), t["scale"].value("y", 1.0f), t["scale"].value("z", 1.0f)};
+                        if (t["scale"].is_array() && t["scale"].size() >= 3) {
+                            comp->scale = {t["scale"][0].get<float>(), t["scale"][1].get<float>(), t["scale"][2].get<float>()};
+                        } else if (t["scale"].is_object()) {
+                            comp->scale = {t["scale"].value("x", 1.0f), t["scale"].value("y", 1.0f), t["scale"].value("z", 1.0f)};
+                        }
                     }
                 }
             }
-            if (entityJson.contains("sprite")) {
-                const auto& s = entityJson["sprite"];
-                core::Vec2 sz{s["size"].value("x", 32.0f), s["size"].value("y", 32.0f)};
-                core::Vec4 col{s["colorTint"].value("x", 1.0f), s["colorTint"].value("y", 1.0f), s["colorTint"].value("z", 1.0f), s["colorTint"].value("w", 1.0f)};
-                ent.addComponent<SpriteComponent>(sz, col);
+
+            if (comps.contains("SpriteComponent") || comps.contains("sprite")) {
+                const auto& s = comps.contains("SpriteComponent") ? comps["SpriteComponent"] : comps["sprite"];
+                core::Vec2 sz{32.0f, 32.0f};
+                if (s.contains("size")) {
+                    if (s["size"].is_array() && s["size"].size() >= 2) {
+                        sz = {s["size"][0].get<float>(), s["size"][1].get<float>()};
+                    } else if (s["size"].is_object()) {
+                        sz = {s["size"].value("x", 32.0f), s["size"].value("y", 32.0f)};
+                    }
+                }
+                auto& spr = ent.addComponent<SpriteComponent>(sz);
+                spr.sortingLayer = s.value("sortingLayer", 0);
             }
-            if (entityJson.contains("movement")) {
-                const auto& m = entityJson["movement"];
+
+            if (comps.contains("MovementComponent") || comps.contains("movement")) {
+                const auto& m = comps.contains("MovementComponent") ? comps["MovementComponent"] : comps["movement"];
                 float spd = m.value("speed", 200.0f);
                 auto& mov = ent.addComponent<MovementComponent>(spd);
-                if (m.contains("velocity")) {
+                if (m.contains("velocity") && m["velocity"].is_object()) {
                     mov.velocity = {m["velocity"].value("x", 0.0f), m["velocity"].value("y", 0.0f)};
                 }
+            }
+
+            if (comps.contains("RigidBody2DComponent")) {
+                const auto& r = comps["RigidBody2DComponent"];
+                auto& rb = ent.addComponent<RigidBody2DComponent>();
+                std::string tStr = r.value("type", "Dynamic");
+                if (tStr == "Static") rb.type = RigidBody2DType::Static;
+                else if (tStr == "Kinematic") rb.type = RigidBody2DType::Kinematic;
+                else rb.type = RigidBody2DType::Dynamic;
+
+                rb.gravityScale = r.value("gravityScale", 1.0f);
+                rb.linearDamping = r.value("linearDamping", 0.0f);
+                rb.fixedRotation = r.value("fixedRotation", false);
+                rb.isSensor = r.value("isSensor", false);
+            }
+
+            if (comps.contains("Collider2DComponent")) {
+                const auto& c = comps["Collider2DComponent"];
+                auto& col = ent.addComponent<Collider2DComponent>();
+                std::string tStr = c.value("type", "Box");
+                if (tStr == "Circle") col.type = Collider2DType::Circle;
+                else if (tStr == "Capsule") col.type = Collider2DType::Capsule;
+                else col.type = Collider2DType::Box;
+
+                if (c.contains("size")) {
+                    if (c["size"].is_array() && c["size"].size() >= 2) {
+                        col.size = {c["size"][0].get<float>(), c["size"][1].get<float>()};
+                    } else if (c["size"].is_object()) {
+                        col.size = {c["size"].value("x", 1.0f), c["size"].value("y", 1.0f)};
+                    }
+                }
+                col.radius = c.value("radius", 0.5f);
+                col.density = c.value("density", 1.0f);
+                col.friction = c.value("friction", 0.3f);
+                col.restitution = c.value("restitution", 0.0f);
+                col.isTrigger = c.value("isTrigger", false);
+                col.enableContactEvents = c.value("enableContactEvents", false);
+                col.enableSensorEvents = c.value("enableSensorEvents", false);
+            }
+
+            if (comps.contains("CharacterController2DComponent")) {
+                const auto& cc = comps["CharacterController2DComponent"];
+                auto& ctrl = ent.addComponent<CharacterController2DComponent>();
+                ctrl.maxSpeed = cc.value("maxSpeed", 350.0f);
+                ctrl.acceleration = cc.value("acceleration", 2500.0f);
+                ctrl.jumpVelocity = cc.value("jumpVelocity", 750.0f);
+                ctrl.coyoteTime = cc.value("coyoteTime", 0.12f);
+                ctrl.jumpBufferTime = cc.value("jumpBufferTime", 0.12f);
+                ctrl.maxSlopeAngle = cc.value("maxSlopeAngle", 45.0f);
             }
         }
     }

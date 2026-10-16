@@ -65,27 +65,40 @@ public:
         }
     }
 
-    template <typename T, typename Func>
-    void forEach(Func&& func) {
-        auto it = m_componentPools.find(typeid(T));
-        if (it == m_componentPools.end()) return;
-        auto& pool = std::any_cast<std::unordered_map<EntityId, T>&>(it->second);
-        for (auto& [entityId, comp] : pool) {
-            if (isAlive(entityId)) {
-                func(entityId, comp);
-            }
-        }
+    template <typename T, typename... Args>
+    T& add(EntityId id, Args&&... args) {
+        return addComponent<T>(id, std::forward<Args>(args)...);
     }
 
-    template <typename T1, typename T2, typename Func>
+    template <typename T, typename... Args>
+    T& add(const Entity& entity, Args&&... args) {
+        return addComponent<T>(entity.getId(), std::forward<Args>(args)...);
+    }
+
+    template <typename T1, typename... Rest, typename Func>
     void forEach(Func&& func) {
-        auto it1 = m_componentPools.find(typeid(T1));
-        if (it1 == m_componentPools.end()) return;
-        auto& pool1 = std::any_cast<std::unordered_map<EntityId, T1>&>(it1->second);
-        for (auto& [entityId, comp1] : pool1) {
-            if (isAlive(entityId)) {
-                if (T2* comp2 = getComponent<T2>(entityId)) {
-                    func(entityId, comp1, *comp2);
+        auto it = m_componentPools.find(typeid(T1));
+        if (it == m_componentPools.end()) return;
+        auto& pool = std::any_cast<std::unordered_map<EntityId, T1>&>(it->second);
+        for (auto& [entityId, first] : pool) {
+            if (!isAlive(entityId)) continue;
+            if constexpr (sizeof...(Rest) == 0) {
+                if constexpr (std::is_invocable_v<Func, Entity, T1&>) {
+                    func(getEntity(entityId), first);
+                } else if constexpr (std::is_invocable_v<Func, EntityId, T1&>) {
+                    func(entityId, first);
+                } else if constexpr (std::is_invocable_v<Func, T1&>) {
+                    func(first);
+                }
+            } else {
+                if ((hasComponent<Rest>(entityId) && ...)) {
+                    if constexpr (std::is_invocable_v<Func, Entity, T1&, Rest&...>) {
+                        func(getEntity(entityId), first, *getComponent<Rest>(entityId)...);
+                    } else if constexpr (std::is_invocable_v<Func, EntityId, T1&, Rest&...>) {
+                        func(entityId, first, *getComponent<Rest>(entityId)...);
+                    } else if constexpr (std::is_invocable_v<Func, T1&, Rest&...>) {
+                        func(first, *getComponent<Rest>(entityId)...);
+                    }
                 }
             }
         }
@@ -166,6 +179,11 @@ public:
         m_world->removeComponent<T>(m_id);
     }
 
+    template <typename T, typename... Args>
+    T& add(Args&&... args) {
+        return addComponent<T>(std::forward<Args>(args)...);
+    }
+
     void destroy() {
         if (isValid()) {
             m_world->destroyEntity(m_id);
@@ -181,6 +199,15 @@ private:
 };
 
 } // namespace engine::ecs
+
+namespace std {
+template <>
+struct hash<engine::ecs::Entity> {
+    std::size_t operator()(const engine::ecs::Entity& entity) const noexcept {
+        return std::hash<engine::ecs::EntityId>{}(entity.getId());
+    }
+};
+} // namespace std
 
 namespace engine {
     using ecs::World;

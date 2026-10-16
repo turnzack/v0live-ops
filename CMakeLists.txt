@@ -29,6 +29,24 @@ find_package(spdlog REQUIRED CONFIG)
 find_package(glm REQUIRED CONFIG)
 find_package(doctest REQUIRED CONFIG)
 
+find_package(box2d CONFIG QUIET)
+if(NOT TARGET box2d::box2d)
+    include(FetchContent)
+    FetchContent_Declare(
+        box2d
+        GIT_REPOSITORY https://github.com/erincatto/box2d.git
+        GIT_TAG v3.0.0
+        GIT_SHALLOW TRUE
+    )
+    set(BOX2D_SAMPLES OFF CACHE BOOL "" FORCE)
+    set(BOX2D_UNIT_TESTS OFF CACHE BOOL "" FORCE)
+    set(BOX2D_VALIDATE OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(box2d)
+    if(TARGET box2d AND NOT TARGET box2d::box2d)
+        add_library(box2d::box2d ALIAS box2d)
+    endif()
+endif()
+
 # Third party submodules
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/third_party/imgui)
 set(DAWN_FETCH_DEPENDENCIES ON)
@@ -65,9 +83,10 @@ target_link_libraries(imgui PUBLIC
     webgpu_cpp
 )
 
-# Core modules (order matters: core → ecs → audio → input → renderer → scripting → editor → runtime)
+# Core modules (order matters: core → ecs → physics2d → audio → input → renderer → scripting → editor → runtime)
 add_subdirectory(engine/core)
 add_subdirectory(engine/ecs)
+add_subdirectory(engine/physics2d)
 add_subdirectory(engine/audio)
 add_subdirectory(engine/input)
 add_subdirectory(engine/renderer)
