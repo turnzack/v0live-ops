@@ -9,7 +9,7 @@ target_include_directories(engine_assets PUBLIC
 )
 
 find_package(efsw CONFIG QUIET)
-find_package(OpenSSL QUIET)
+find_package(picosha2 CONFIG QUIET)
 
 target_link_libraries(engine_assets PUBLIC
     engine_core
@@ -22,8 +22,8 @@ if(TARGET efsw::efsw)
     target_link_libraries(engine_assets PUBLIC efsw::efsw)
 endif()
 
-if(TARGET OpenSSL::Crypto)
-    target_link_libraries(engine_assets PUBLIC OpenSSL::Crypto)
+if(TARGET picosha2::picosha2)
+    target_link_libraries(engine_assets PUBLIC picosha2::picosha2)
 endif()
 
 target_compile_features(engine_assets PUBLIC cxx_std_23)

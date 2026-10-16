@@ -13,6 +13,6 @@
     "sol2",
     "box2d",
     "efsw",
-    "openssl"
+    "picosha2"
   ]
 }

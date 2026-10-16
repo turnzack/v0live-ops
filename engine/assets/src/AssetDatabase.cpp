@@ -10,11 +10,11 @@
 #include "engine/core/GUID.hpp"
 #include "engine/core/SHA256.hpp"
 
-#if __has_include(<openssl/evp.h>)
-#include <openssl/evp.h>
-#define ENGINE_HAS_OPENSSL 1
+#if __has_include(<picosha2.h>)
+#include <picosha2.h>
+#define ENGINE_HAS_PICOSHA2 1
 #else
-#define ENGINE_HAS_OPENSSL 0
+#define ENGINE_HAS_PICOSHA2 0
 #endif
 
 namespace engine {
@@ -72,33 +72,14 @@ AssetType AssetDatabase::detectType(const std::filesystem::path& path) {
 }
 
 std::string AssetDatabase::computeSha256(const std::filesystem::path& path) {
-#if ENGINE_HAS_OPENSSL
+#if ENGINE_HAS_PICOSHA2
     std::ifstream file(path, std::ios::binary);
     if (!file) {
         return {};
     }
-
-    EVP_MD_CTX* context = EVP_MD_CTX_new();
-    ENGINE_VERIFY(context != nullptr, "Failed to create EVP context");
-    EVP_DigestInit_ex(context, EVP_sha256(), nullptr);
-
-    char buffer[8192];
-    while (file.read(buffer, sizeof(buffer)) || file.gcount() > 0) {
-        EVP_DigestUpdate(
-            context, buffer, static_cast<std::size_t>(file.gcount())
-        );
-    }
-
-    unsigned char hash[EVP_MAX_MD_SIZE];
-    unsigned int hashLength = 0;
-    EVP_DigestFinal_ex(context, hash, &hashLength);
-    EVP_MD_CTX_free(context);
-
-    std::ostringstream stream;
-    for (unsigned int i = 0; i < hashLength; ++i) {
-        stream << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
-    }
-    return stream.str();
+    std::string hash;
+    picosha2::hash256(file, hash);
+    return picosha2::bytes_to_hex_string(hash.begin(), hash.end());
 #else
     return core::SHA256::hashFile(path.string());
 #endif
