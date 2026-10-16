@@ -122,6 +122,15 @@ ECS-003 (Scène JSON)     INP-001 (Inputs) ────────► EDT-001 (
 - `SCR-001` Intégration scripting Lua 5.4 + sol2 (2j - P0)
 - `SCR-002` Bindings Lua (Transform, Input, Audio, Scene) (2j - P0)
 
+### Sprint 3bis — Physique 2D & Caméra (Box2D v3)
+- [x] `PHY-001` Wrapper Box2D v3 (b2WorldId, b2BodyId, Soft Step) (2j - P0)
+- [x] `PHY-002` Colliders 2D (Box, Circle, Capsule) (1,5j - P0)
+- [x] `PHY-003` Character Controller 2D (Coyote time, Jump buffer, Ground detection) (2j - P0)
+- [x] `PHY-004` Layers, filtering, sensor/trigger events (1j - P0)
+- [x] `GFX-010` Caméra orthographique lissée avec suivi et zoom (1j - P0)
+- [x] `GFX-013` Scène platformer complète avec rigidbodies et sol (1j - P1)
+- [x] `DBG-001` Visualisation debug des colliders (F1 / ImGui overlay) (1j - P1)
+
 ### Sprint 4 — Éditeur Avancé & Gestion des Assets
 - `EDT-020` Hierarchy d'entités complète avec drag & drop (2j - P0)
 - `EDT-021` Inspector dynamique généré par la réflexion flecs (2j - P0)
