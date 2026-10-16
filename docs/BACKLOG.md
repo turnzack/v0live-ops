@@ -132,13 +132,16 @@ ECS-003 (Scène JSON)     INP-001 (Inputs) ────────► EDT-001 (
 - [x] `DBG-001` Visualisation debug des colliders (F1 / ImGui overlay) (1j - P1)
 
 ### Sprint 4 — Éditeur Avancé & Gestion des Assets
-- `EDT-020` Hierarchy d'entités complète avec drag & drop (2j - P0)
+- [x] `PIPE-001` Asset Database avec indexation GUID et SHA-256 (2j - P0)
+- [x] `EDT-022` Asset Browser avec drag & drop vers la scène (2j - P0)
+- [x] `PIPE-002` File watcher d'assets avec réimportation à chaud (1j - P1)
+- [x] `EDT-020` Hierarchy d'entités complète avec drag & drop (2j - P0)
+- [x] `SCR-003` Hot-reload des scripts Lua en cours d'exécution (1,5j - P1)
+- [x] `SCR-004` Sandbox et capture des erreurs Lua sans crash éditeur (1j - P0)
+- [x] `TST-020` Tests renommage / déplacement sans casse
+- [x] `TST-021` Tests propagation et hiérarchie avec undo / redo
+- [x] `TST-022` Tests file watcher
 - `EDT-021` Inspector dynamique généré par la réflexion flecs (2j - P0)
-- `PIPE-001` Asset Database avec indexation GUID et SHA-256 (2j - P0)
-- `EDT-022` Asset Browser avec drag & drop vers la scène (2j - P0)
-- `PIPE-002` File watcher d'assets avec réimportation à chaud (1j - P1)
-- `SCR-003` Hot-reload des scripts Lua en cours d'exécution (1,5j - P1)
-- `SCR-004` Sandbox et capture des erreurs Lua sans crash éditeur (1j - P0)
 
 ### Sprint 5 — Packaging, Build & UI
 - `BLD-001` Asset Cooker et génération d'archive `game.pak` (2j - P0)
