@@ -5,6 +5,9 @@
 #include <optional>
 
 #include "editor/UndoManager.hpp"
+#include "editor/AssetBrowserPanel.hpp"
+#include "engine/assets/AssetDatabase.hpp"
+#include "engine/assets/AssetWatcher.hpp"
 #include "engine/audio/AudioEngine.hpp"
 #include "engine/ecs/World.hpp"
 #include "engine/input/InputManager.hpp"
@@ -39,8 +42,10 @@ public:
 private:
     void drawDockspace();
     void drawHierarchy();
+    void drawHierarchyNode(engine::Entity entity);
     void drawInspector();
     void drawDebugColliders();
+    void drawLuaConsole();
 
     [[nodiscard]] engine::ecs::World& activeWorld() noexcept {
         return (mode_ == EditorMode::Play && playWorld_.has_value()) ? *playWorld_ : world_;
@@ -57,6 +62,10 @@ private:
     engine::LuaRuntime lua_;
     UndoManager undo_;
 
+    engine::AssetDatabase assetDb_;
+    engine::AssetWatcher assetWatcher_;
+    AssetBrowserPanel assetBrowserPanel_;
+
     engine::PhysicsWorld2D physics_;
     engine::CharacterController2D characterController_;
     engine::Camera2D camera_;
@@ -70,3 +79,4 @@ private:
 };
 
 } // namespace editor
+

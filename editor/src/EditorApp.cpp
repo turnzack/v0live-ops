@@ -1,5 +1,7 @@
 #include "editor/EditorApp.hpp"
 #include "editor/commands/TransformCommand.hpp"
+#include "editor/commands/CreateSpriteCommand.hpp"
+#include "editor/commands/ReparentEntityCommand.hpp"
 #include "engine/ecs/Components.hpp"
 
 #include <imgui.h>
@@ -75,6 +77,19 @@ bool EditorApp::initialize(SDL_Window* window) {
     lua_.initialize(world_, input_, audio_);
     lua_.loadScript("samples/platformer/scripts/player.lua");
 
+    assetDb_.initialize(".");
+    if (std::filesystem::exists("assets/textures/player.png")) {
+        assetDb_.importAsset("assets/textures/player.png");
+    }
+    if (std::filesystem::exists("samples/platformer/scripts/player.lua")) {
+        assetDb_.importAsset("samples/platformer/scripts/player.lua");
+    }
+    assetWatcher_.start(assetDb_, [this](const std::filesystem::path& path) {
+        if (path.extension() == ".lua") {
+            lua_.reload();
+        }
+    });
+
     camera_.setZoom(50.0f); // 50 pixels per meter/unit
     camera_.setDeadZone(16.0f);
 
@@ -87,6 +102,9 @@ void EditorApp::shutdown() {
     if (!initialized_) {
         return;
     }
+
+    assetWatcher_.stop();
+    assetDb_.shutdown();
 
     physics_.shutdown();
     lua_.shutdown();
@@ -164,6 +182,8 @@ void EditorApp::exitPlayMode() {
 }
 
 void EditorApp::newFrame(double delta) {
+    assetWatcher_.processPendingChanges();
+
     if (mode_ == EditorMode::Play && playWorld_.has_value()) {
         characterController_.update(*playWorld_, input_, physics_, static_cast<float>(delta));
         physics_.step(static_cast<float>(delta), 4);
@@ -189,6 +209,8 @@ void EditorApp::render() {
     drawHierarchy();
     drawInspector();
     drawDebugColliders();
+    assetBrowserPanel_.draw(assetDb_, activeWorld(), selectedEntity_);
+    drawLuaConsole();
 
     ImGui::Render();
 }
@@ -273,18 +295,93 @@ void EditorApp::drawHierarchy() {
         ImGui::Separator();
     }
 
-    activeWorld().forEach<engine::TagComponent>(
-        [&](engine::ecs::EntityId entityId, engine::TagComponent& tag) {
-            engine::Entity entity = activeWorld().getEntity(entityId);
-            const bool selected = (entity == selectedEntity_);
-
-            if (ImGui::Selectable(tag.name.c_str(), selected)) {
-                selectedEntity_ = entity;
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENGINE_ASSET_GUID")) {
+            const std::string guid(
+                static_cast<const char*>(payload->Data),
+                payload->DataSize - 1
+            );
+            const engine::AssetRecord* record = assetDb_.find(guid);
+            if (record != nullptr && record->type == engine::AssetType::Texture) {
+                undo_.execute(std::make_unique<CreateSpriteCommand>(
+                    activeWorld(), record->guid, glm::vec2(0.0f, 0.0f)
+                ));
             }
         }
-    );
+        ImGui::EndDragDropTarget();
+    }
+
+    const auto rootIds = activeWorld().getRootEntities();
+    for (engine::ecs::EntityId rootId : rootIds) {
+        engine::Entity root = activeWorld().getEntity(rootId);
+        drawHierarchyNode(root);
+    }
 
     ImGui::End();
+}
+
+void EditorApp::drawHierarchyNode(engine::Entity entity) {
+    if (!entity.isValid()) {
+        return;
+    }
+
+    auto* tag = activeWorld().tryGet<engine::TagComponent>(entity);
+    std::string name = tag ? tag->name : ("Entity " + std::to_string(entity.id()));
+
+    ImGui::PushID(static_cast<int>(entity.id()));
+    const bool selected = (entity == selectedEntity_);
+    const auto children = activeWorld().children(entity);
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth |
+                               (selected ? ImGuiTreeNodeFlags_Selected : 0);
+    if (children.empty()) {
+        flags |= ImGuiTreeNodeFlags_Leaf;
+    }
+
+    const bool opened = ImGui::TreeNodeEx(name.c_str(), flags);
+
+    if (ImGui::IsItemClicked()) {
+        selectedEntity_ = entity;
+    }
+
+    if (ImGui::BeginDragDropSource()) {
+        ImGui::SetDragDropPayload("ENGINE_ENTITY", &entity, sizeof(entity));
+        ImGui::Text("%s", name.c_str());
+        ImGui::EndDragDropSource();
+    }
+
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENGINE_ENTITY")) {
+            engine::Entity draggedEntity;
+            std::memcpy(&draggedEntity, payload->Data, sizeof(draggedEntity));
+            if (draggedEntity.isValid() && draggedEntity != entity) {
+                undo_.execute(std::make_unique<ReparentEntityCommand>(
+                    activeWorld(), draggedEntity, entity
+                ));
+            }
+        }
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENGINE_ASSET_GUID")) {
+            const std::string guid(
+                static_cast<const char*>(payload->Data),
+                payload->DataSize - 1
+            );
+            const engine::AssetRecord* record = assetDb_.find(guid);
+            if (record != nullptr && record->type == engine::AssetType::Texture) {
+                undo_.execute(std::make_unique<CreateSpriteCommand>(
+                    activeWorld(), record->guid, glm::vec2(0.0f, 0.0f)
+                ));
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    if (opened) {
+        for (const engine::Entity child : children) {
+            drawHierarchyNode(child);
+        }
+        ImGui::TreePop();
+    }
+
+    ImGui::PopID();
 }
 
 void EditorApp::drawInspector() {
@@ -456,6 +553,23 @@ void EditorApp::drawDebugColliders() {
             }
         }
     );
+}
+
+void EditorApp::drawLuaConsole() {
+    ImGui::Begin("Lua Console");
+    if (lua_.isValid()) {
+        ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Lua runtime: OK");
+    } else {
+        ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Lua runtime: ERROR");
+    }
+    if (!lua_.lastError().empty()) {
+        ImGui::Separator();
+        ImGui::TextWrapped("%s", lua_.lastError().c_str());
+    }
+    if (ImGui::Button("Reload Script")) {
+        lua_.reload();
+    }
+    ImGui::End();
 }
 
 bool EditorApp::wantCaptureInput() const {

@@ -321,6 +321,135 @@ void World::restoreFrom(const World& source) {
     m_componentPools = source.m_componentPools;
 }
 
+void World::setParent(Entity child, Entity parent) {
+    if (child.isValid() && parent.isValid()) {
+        setParent(child.getId(), parent.getId());
+    }
+}
+
+void World::clearParent(Entity child) {
+    if (child.isValid()) {
+        detachFromParent(child.getId());
+    }
+}
+
+std::vector<Entity> World::children(Entity parent) const {
+    if (!parent.isValid()) return {};
+    std::vector<Entity> res;
+    auto childIds = getChildren(parent.getId());
+    res.reserve(childIds.size());
+    for (EntityId id : childIds) {
+        res.push_back(const_cast<World*>(this)->getEntity(id));
+    }
+    return res;
+}
+
+std::optional<Entity> World::parent(Entity child) const {
+    if (!child.isValid()) return std::nullopt;
+    EntityId pId = getParent(child.getId());
+    if (pId != kInvalidEntityId && isAlive(pId)) {
+        return const_cast<World*>(this)->getEntity(pId);
+    }
+    return std::nullopt;
+}
+
+bool World::isDescendantOf(EntityId entityId, EntityId potentialAncestorId) const {
+    if (entityId == kInvalidEntityId || potentialAncestorId == kInvalidEntityId) {
+        return false;
+    }
+    EntityId current = getParent(entityId);
+    while (current != kInvalidEntityId) {
+        if (current == potentialAncestorId) {
+            return true;
+        }
+        current = getParent(current);
+    }
+    return false;
+}
+
+EntityId World::getParent(EntityId entityId) const {
+    if (const auto* hier = getComponent<HierarchyComponent>(entityId)) {
+        return hier->parent;
+    }
+    return kInvalidEntityId;
+}
+
+std::vector<EntityId> World::getChildren(EntityId entityId) const {
+    if (const auto* hier = getComponent<HierarchyComponent>(entityId)) {
+        return hier->children;
+    }
+    return {};
+}
+
+std::vector<EntityId> World::getRootEntities() const {
+    std::vector<EntityId> roots;
+    for (EntityId id : m_entities) {
+        if (isAlive(id)) {
+            if (const auto* hier = getComponent<HierarchyComponent>(id)) {
+                if (hier->parent == kInvalidEntityId || !isAlive(hier->parent)) {
+                    roots.push_back(id);
+                }
+            } else {
+                roots.push_back(id);
+            }
+        }
+    }
+    return roots;
+}
+
+void World::detachFromParent(EntityId childId) {
+    if (!isAlive(childId)) return;
+
+    auto* childHier = getComponent<HierarchyComponent>(childId);
+    if (!childHier || childHier->parent == kInvalidEntityId) return;
+
+    EntityId oldParentId = childHier->parent;
+    childHier->parent = kInvalidEntityId;
+
+    if (auto* parentHier = getComponent<HierarchyComponent>(oldParentId)) {
+        auto it = std::find(parentHier->children.begin(), parentHier->children.end(), childId);
+        if (it != parentHier->children.end()) {
+            parentHier->children.erase(it);
+        }
+    }
+}
+
+bool World::setParent(EntityId childId, EntityId newParentId) {
+    if (!isAlive(childId) || childId == newParentId) {
+        return false;
+    }
+
+    if (newParentId == kInvalidEntityId) {
+        detachFromParent(childId);
+        return true;
+    }
+
+    if (!isAlive(newParentId)) {
+        return false;
+    }
+
+    // Circular dependency check: newParent cannot be a descendant of child
+    if (isDescendantOf(newParentId, childId)) {
+        return false;
+    }
+
+    detachFromParent(childId);
+
+    auto* childHier = getComponent<HierarchyComponent>(childId);
+    if (!childHier) {
+        childHier = &addComponent<HierarchyComponent>(childId);
+    }
+    childHier->parent = newParentId;
+
+    auto* parentHier = getComponent<HierarchyComponent>(newParentId);
+    if (!parentHier) {
+        parentHier = &addComponent<HierarchyComponent>(newParentId);
+    }
+    parentHier->children.push_back(childId);
+
+    return true;
+}
+
 void World::clear() {
     m_entities.clear();
     m_alive.clear();

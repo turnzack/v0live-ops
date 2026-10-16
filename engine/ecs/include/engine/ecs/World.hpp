@@ -125,6 +125,19 @@ public:
     [[nodiscard]] World clone() const;
     void restoreFrom(const World& source);
 
+    // Entity Hierarchy (EDT-020)
+    void setParent(Entity child, Entity parent);
+    void clearParent(Entity child);
+    [[nodiscard]] std::vector<Entity> children(Entity parent) const;
+    [[nodiscard]] std::optional<Entity> parent(Entity child) const;
+
+    bool setParent(EntityId childId, EntityId newParentId);
+    void detachFromParent(EntityId childId);
+    [[nodiscard]] EntityId getParent(EntityId entityId) const;
+    [[nodiscard]] std::vector<EntityId> getChildren(EntityId entityId) const;
+    [[nodiscard]] std::vector<EntityId> getRootEntities() const;
+    [[nodiscard]] bool isDescendantOf(EntityId entityId, EntityId potentialAncestorId) const;
+
     void clear();
 
 private:
@@ -151,6 +164,7 @@ public:
 
     [[nodiscard]] bool isValid() const noexcept { return m_world && m_world->isAlive(m_id); }
     [[nodiscard]] EntityId getId() const noexcept { return m_id; }
+    [[nodiscard]] EntityId id() const noexcept { return m_id; }
     [[nodiscard]] core::GUID getGUID() const;
     [[nodiscard]] std::string_view getName() const;
 
