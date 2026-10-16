@@ -11,6 +11,8 @@
     "miniaudio",
     "lua",
     "sol2",
-    "box2d"
+    "box2d",
+    "efsw",
+    "openssl"
   ]
 }

@@ -6,6 +6,7 @@ add_library(engine_core STATIC
     src/Log.cpp
     src/Window.cpp
     src/GUID.cpp
+    src/SHA256.cpp
 )
 
 target_include_directories(engine_core PUBLIC

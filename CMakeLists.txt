@@ -91,6 +91,7 @@ add_subdirectory(engine/audio)
 add_subdirectory(engine/input)
 add_subdirectory(engine/renderer)
 add_subdirectory(engine/scripting)
+add_subdirectory(engine/assets)
 add_subdirectory(editor)
 add_subdirectory(runtime)
 
