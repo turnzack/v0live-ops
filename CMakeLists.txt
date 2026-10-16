@@ -65,11 +65,13 @@ target_link_libraries(imgui PUBLIC
     webgpu_cpp
 )
 
-# Core modules (order matters: core → ecs → input → renderer → editor → runtime)
+# Core modules (order matters: core → ecs → audio → input → renderer → scripting → editor → runtime)
 add_subdirectory(engine/core)
 add_subdirectory(engine/ecs)
+add_subdirectory(engine/audio)
 add_subdirectory(engine/input)
 add_subdirectory(engine/renderer)
+add_subdirectory(engine/scripting)
 add_subdirectory(editor)
 add_subdirectory(runtime)
 

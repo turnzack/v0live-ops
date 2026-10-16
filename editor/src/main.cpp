@@ -41,6 +41,8 @@ int main(int argc, char* argv[]) {
     }
 
     bool running = true;
+    Uint64 lastTime = SDL_GetPerformanceCounter();
+    const double frequency = static_cast<double>(SDL_GetPerformanceFrequency());
 
     while (running) {
         SDL_Event event{};
@@ -53,7 +55,11 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        editor.newFrame();
+        const Uint64 currentTime = SDL_GetPerformanceCounter();
+        const double delta = static_cast<double>(currentTime - lastTime) / frequency;
+        lastTime = currentTime;
+
+        editor.newFrame(delta);
 
         editor.render();
     }
