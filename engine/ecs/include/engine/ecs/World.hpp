@@ -93,6 +93,22 @@ public:
 
     [[nodiscard]] const std::vector<EntityId>& getAllEntities() const noexcept { return m_entities; }
 
+    [[nodiscard]] Entity getEntityByName(std::string_view name);
+    [[nodiscard]] bool isValid(const Entity& entity) const noexcept;
+
+    template <typename T>
+    [[nodiscard]] T* tryGet(const Entity& entity) {
+        return entity.isValid() ? getComponent<T>(entity.getId()) : nullptr;
+    }
+
+    template <typename T>
+    [[nodiscard]] const T* tryGet(const Entity& entity) const {
+        return entity.isValid() ? getComponent<T>(entity.getId()) : nullptr;
+    }
+
+    bool saveScene(std::string_view filePath);
+    bool loadScene(std::string_view filePath);
+
     void clear();
 
 private:
@@ -162,3 +178,15 @@ private:
 };
 
 } // namespace engine::ecs
+
+namespace engine {
+    using ecs::World;
+    using ecs::Entity;
+    using ecs::IDComponent;
+    using ecs::TagComponent;
+    using ecs::TransformComponent;
+    using ecs::SpriteComponent;
+    using ecs::MovementComponent;
+    using ecs::HierarchyComponent;
+} // namespace engine
+

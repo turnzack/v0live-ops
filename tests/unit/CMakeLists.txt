@@ -1,19 +1,26 @@
-add_executable(unit_tests
+add_executable(engine_unit_tests
     test_main.cpp
-    test_core.cpp
-    test_ecs.cpp
-    TestLog.cpp
-    TestMath.cpp
-    TestTimeAndConfig.cpp
-    TestECS.cpp
-    TestSceneSerialization.cpp
+    TestGameLoop.cpp
+    TestEngineConfig.cpp
+    TestInputManager.cpp
+    TestSpriteBatch.cpp
 )
 
-target_link_libraries(unit_tests PRIVATE
+target_include_directories(engine_unit_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/engine/core/include
+    ${CMAKE_SOURCE_DIR}/engine/ecs/include
+    ${CMAKE_SOURCE_DIR}/engine/input/include
+    ${CMAKE_SOURCE_DIR}/engine/renderer/include
+)
+
+target_link_libraries(engine_unit_tests PRIVATE
     engine_core
     engine_ecs
+    engine_input
+    engine_renderer
+    doctest::doctest
+    SDL3::SDL3
 )
 
-target_compile_features(unit_tests PRIVATE cxx_std_20)
-
-add_test(NAME EngineUnitTests COMMAND unit_tests)
+add_test(NAME engine_unit_tests COMMAND engine_unit_tests)

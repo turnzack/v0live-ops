@@ -22,9 +22,10 @@ struct IDComponent {
 // 2. Nommage lisible pour l'éditeur et l'arborescence
 struct TagComponent {
     std::string tag{"Entity"};
+    std::string name{"Entity"};
 
     TagComponent() = default;
-    explicit TagComponent(std::string_view name) : tag(name) {}
+    explicit TagComponent(std::string_view inName) : tag(inName), name(inName) {}
 };
 
 // 3. Transform spatial 2D / 3D
@@ -49,13 +50,14 @@ struct SpriteComponent {
     core::GUID textureGuid{core::GUID::Invalid};
     core::Vec2 size{32.0f, 32.0f};
     core::Vec4 colorTint{1.0f, 1.0f, 1.0f, 1.0f};
+    core::Vec4 tint{1.0f, 1.0f, 1.0f, 1.0f};
     int sortingLayer{0};
     bool flipX{false};
     bool flipY{false};
 
     SpriteComponent() = default;
     SpriteComponent(const core::Vec2& inSize, const core::Vec4& inColor = core::Vec4(1.0f))
-        : size(inSize), colorTint(inColor) {}
+        : size(inSize), colorTint(inColor), tint(inColor) {}
 };
 
 // 5. Mouvement & Contrôles Gameplay (Platformer 2D)

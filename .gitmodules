@@ -1,0 +1,9 @@
+[submodule "third_party/imgui"]
+	path = third_party/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "third_party/sdl3webgpu"]
+	path = third_party/sdl3webgpu
+	url = https://github.com/eliemichel/sdl3webgpu.git
+[submodule "third_party/dawn"]
+	path = third_party/dawn
+	url = https://github.com/google/dawn.git
