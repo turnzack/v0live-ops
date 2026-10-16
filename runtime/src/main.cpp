@@ -1,41 +1,7 @@
-#include "engine/core/Application.hpp"
-#include "engine/core/Log.hpp"
+#include <engine/core/Application.hpp>
 
-class SandboxApp : public engine::core::Application {
-public:
-    SandboxApp() : engine::core::Application("config.json") {}
-
-protected:
-    bool onInit() override {
-        LOG_INFO(Game, "SandboxApp initialise avec succes.");
-        return true;
-    }
-
-    void onFixedUpdate(float fixedDeltaTime) override {
-        m_fixedTicks++;
-        (void)fixedDeltaTime;
-    }
-
-    void onUpdate(float deltaTime) override {
-        (void)deltaTime;
-    }
-
-    void onRender(float alpha) override {
-        (void)alpha;
-        // Point d'accroche pour le rendu WebGPU au lot suivant
-    }
-
-    void onShutdown() override {
-        LOG_INFO(Game, "SandboxApp termine. Total fixed ticks: ", m_fixedTicks);
-    }
-
-private:
-    uint64_t m_fixedTicks{0};
-};
-
-int main(int argc, char** argv) {
-    (void)argc;
-    (void)argv;
-    SandboxApp app;
+int main(int argc, char* argv[]) {
+    const std::string configPath = argc > 1 ? argv[1] : "config/engine.json";
+    engine::Application app(configPath);
     return app.run();
 }

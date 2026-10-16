@@ -1,7 +1,7 @@
 #pragma once
 
-#include "engine/core/Log.hpp"
 #include <cstdlib>
+#include <spdlog/spdlog.h>
 
 #if defined(_MSC_VER)
     #define ENGINE_DEBUG_BREAK() __debugbreak()
@@ -9,21 +9,26 @@
     #define ENGINE_DEBUG_BREAK() __builtin_trap()
 #endif
 
-namespace engine::core::detail {
-    inline void reportAssertionFailure(const char* condition, const char* message, const char* file, int line) {
-        LOG_FATAL(Assert, "Assertion '", condition, "' failed in ", file, ":", line, " -> ", message);
-    }
-} // namespace engine::core::detail
+#define ENGINE_VERIFY(condition, ...) \
+    do { \
+        if (!(condition)) { \
+            spdlog::critical("[VERIFICATION FAILED] " #condition " at {}:{}", __FILE__, __LINE__); \
+            spdlog::critical(__VA_ARGS__); \
+            ENGINE_DEBUG_BREAK(); \
+            std::abort(); \
+        } \
+    } while (false)
 
 #ifndef NDEBUG
-    #define ENGINE_ASSERT(condition, message) \
+    #define ENGINE_ASSERT(condition, ...) \
         do { \
             if (!(condition)) { \
-                ::engine::core::detail::reportAssertionFailure(#condition, message, __FILE__, __LINE__); \
+                spdlog::critical("[ASSERTION FAILED] " #condition " at {}:{}", __FILE__, __LINE__); \
+                spdlog::critical(__VA_ARGS__); \
                 ENGINE_DEBUG_BREAK(); \
                 std::abort(); \
             } \
         } while (false)
 #else
-    #define ENGINE_ASSERT(condition, message) do { (void)(condition); } while (false)
+    #define ENGINE_ASSERT(condition, ...) do { (void)(condition); } while (false)
 #endif

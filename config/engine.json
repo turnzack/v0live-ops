@@ -1,0 +1,14 @@
+{
+  "window": {
+    "title": "Engine Suite",
+    "width": 1280,
+    "height": 720,
+    "resizable": true,
+    "vsync": true
+  },
+  "loop": {
+    "fixedUpdateHz": 60,
+    "maxFixedStepsPerFrame": 5,
+    "maxFrameDelta": 0.25
+  }
+}

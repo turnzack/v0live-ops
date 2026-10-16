@@ -36,3 +36,7 @@ private:
 };
 
 } // namespace engine::core
+
+namespace engine {
+    using core::Application;
+} // namespace engine
