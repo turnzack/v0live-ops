@@ -37,11 +37,13 @@ bool LuaRuntime::loadScript(const std::string& path) {
 
     if (!result.valid()) {
         const sol::error error = result;
-        spdlog::error("Lua script error in {}: {}", path, error.what());
+        lastError_ = error.what();
+        spdlog::error("Lua script error in {}: {}", path, lastError_);
         valid_ = false;
         return false;
     }
 
+    lastError_.clear();
     onStart_ = lua_["onStart"];
     onUpdate_ = lua_["onUpdate"];
 
@@ -53,13 +55,34 @@ bool LuaRuntime::loadScript(const std::string& path) {
     return true;
 }
 
-void LuaRuntime::reload() {
+bool LuaRuntime::reload() {
     if (scriptPath_.empty()) {
-        return;
+        return false;
     }
 
     spdlog::info("Reloading Lua script: {}", scriptPath_);
-    loadScript(scriptPath_);
+    lua_.collect_garbage();
+
+    const auto result = lua_.safe_script_file(scriptPath_);
+
+    if (!result.valid()) {
+        const sol::error error = result;
+        lastError_ = error.what();
+        spdlog::error("Lua reload failed: {}", lastError_);
+        valid_ = false;
+        return false;
+    }
+
+    onStart_ = lua_["onStart"];
+    onUpdate_ = lua_["onUpdate"];
+    valid_ = true;
+    lastError_.clear();
+
+    if (onStart_.valid()) {
+        callOnStart();
+    }
+
+    return true;
 }
 
 void LuaRuntime::callOnStart() {

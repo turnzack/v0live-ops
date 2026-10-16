@@ -14,11 +14,12 @@ public:
     void shutdown();
 
     bool loadScript(const std::string& path);
-    void reload();
+    bool reload();
 
     void callOnStart();
     void callOnUpdate(double delta);
 
+    [[nodiscard]] const std::string& lastError() const noexcept { return lastError_; }
     [[nodiscard]] bool isValid() const noexcept { return valid_; }
     [[nodiscard]] sol::state& lua() noexcept { return lua_; }
 
@@ -33,6 +34,7 @@ private:
     sol::protected_function onStart_;
     sol::protected_function onUpdate_;
     std::string scriptPath_;
+    std::string lastError_;
     bool valid_ = false;
 };
 
