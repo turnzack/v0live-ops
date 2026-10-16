@@ -3,6 +3,7 @@ add_library(engine_renderer STATIC
     src/Texture.cpp
     src/SpriteBatch.cpp
     src/SpriteRenderSystem.cpp
+    src/Camera2D.cpp
 )
 
 target_include_directories(engine_renderer PUBLIC
