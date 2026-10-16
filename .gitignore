@@ -4,6 +4,8 @@ bin/
 lib/
 out/
 dist/
+node_modules/
+.pnpm-store/
 
 # CMake artifacts
 CMakeUserPresets.json
