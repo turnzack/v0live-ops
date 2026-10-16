@@ -4,12 +4,14 @@ add_library(engine_core STATIC
     include/engine/core/Assert.hpp
     include/engine/core/Log.hpp
     include/engine/core/Math.hpp
+    include/engine/core/GUID.hpp
     include/engine/core/Config.hpp
     include/engine/core/Time.hpp
     include/engine/core/Window.hpp
     include/engine/core/Application.hpp
     src/version.cpp
     src/Log.cpp
+    src/GUID.cpp
     src/Config.cpp
     src/Time.cpp
     src/Window.cpp

@@ -1,0 +1,164 @@
+#pragma once
+
+#include "engine/ecs/Components.hpp"
+#include <unordered_map>
+#include <memory>
+#include <typeindex>
+#include <any>
+#include <functional>
+#include <vector>
+
+namespace engine::ecs {
+
+class Entity;
+
+class World {
+public:
+    World();
+    ~World();
+
+    Entity createEntity(std::string_view name = "Entity", const core::GUID& guid = core::GUID::Invalid);
+    void destroyEntity(EntityId id);
+
+    [[nodiscard]] bool isAlive(EntityId id) const noexcept;
+    [[nodiscard]] size_t entityCount() const noexcept;
+
+    [[nodiscard]] Entity getEntity(EntityId id);
+    [[nodiscard]] Entity getEntityByGUID(const core::GUID& guid);
+
+    template <typename T, typename... Args>
+    T& addComponent(EntityId id, Args&&... args) {
+        auto& pool = getOrCreateComponentPool<T>();
+        pool[id] = T(std::forward<Args>(args)...);
+        return pool[id];
+    }
+
+    template <typename T>
+    [[nodiscard]] T* getComponent(EntityId id) {
+        auto it = m_componentPools.find(typeid(T));
+        if (it == m_componentPools.end()) return nullptr;
+        auto& pool = std::any_cast<std::unordered_map<EntityId, T>&>(it->second);
+        auto elem = pool.find(id);
+        return (elem != pool.end()) ? &elem->second : nullptr;
+    }
+
+    template <typename T>
+    [[nodiscard]] const T* getComponent(EntityId id) const {
+        auto it = m_componentPools.find(typeid(T));
+        if (it == m_componentPools.end()) return nullptr;
+        const auto& pool = std::any_cast<const std::unordered_map<EntityId, T>&>(it->second);
+        auto elem = pool.find(id);
+        return (elem != pool.end()) ? &elem->second : nullptr;
+    }
+
+    template <typename T>
+    [[nodiscard]] bool hasComponent(EntityId id) const noexcept {
+        return getComponent<T>(id) != nullptr;
+    }
+
+    template <typename T>
+    void removeComponent(EntityId id) {
+        auto it = m_componentPools.find(typeid(T));
+        if (it != m_componentPools.end()) {
+            auto& pool = std::any_cast<std::unordered_map<EntityId, T>&>(it->second);
+            pool.erase(id);
+        }
+    }
+
+    template <typename T, typename Func>
+    void forEach(Func&& func) {
+        auto it = m_componentPools.find(typeid(T));
+        if (it == m_componentPools.end()) return;
+        auto& pool = std::any_cast<std::unordered_map<EntityId, T>&>(it->second);
+        for (auto& [entityId, comp] : pool) {
+            if (isAlive(entityId)) {
+                func(entityId, comp);
+            }
+        }
+    }
+
+    template <typename T1, typename T2, typename Func>
+    void forEach(Func&& func) {
+        auto it1 = m_componentPools.find(typeid(T1));
+        if (it1 == m_componentPools.end()) return;
+        auto& pool1 = std::any_cast<std::unordered_map<EntityId, T1>&>(it1->second);
+        for (auto& [entityId, comp1] : pool1) {
+            if (isAlive(entityId)) {
+                if (T2* comp2 = getComponent<T2>(entityId)) {
+                    func(entityId, comp1, *comp2);
+                }
+            }
+        }
+    }
+
+    [[nodiscard]] const std::vector<EntityId>& getAllEntities() const noexcept { return m_entities; }
+
+    void clear();
+
+private:
+    template <typename T>
+    std::unordered_map<EntityId, T>& getOrCreateComponentPool() {
+        auto it = m_componentPools.find(typeid(T));
+        if (it == m_componentPools.end()) {
+            it = m_componentPools.emplace(typeid(T), std::unordered_map<EntityId, T>{}).first;
+        }
+        return std::any_cast<std::unordered_map<EntityId, T>&>(it->second);
+    }
+
+    EntityId m_nextEntityId{1};
+    std::vector<EntityId> m_entities;
+    std::unordered_map<EntityId, bool> m_alive;
+    std::unordered_map<core::GUID, EntityId> m_guidToEntity;
+    std::unordered_map<std::type_index, std::any> m_componentPools;
+};
+
+class Entity {
+public:
+    Entity() = default;
+    Entity(EntityId id, World* world) : m_id(id), m_world(world) {}
+
+    [[nodiscard]] bool isValid() const noexcept { return m_world && m_world->isAlive(m_id); }
+    [[nodiscard]] EntityId getId() const noexcept { return m_id; }
+    [[nodiscard]] core::GUID getGUID() const;
+    [[nodiscard]] std::string_view getName() const;
+
+    template <typename T, typename... Args>
+    T& addComponent(Args&&... args) {
+        return m_world->addComponent<T>(m_id, std::forward<Args>(args)...);
+    }
+
+    template <typename T>
+    [[nodiscard]] T* getComponent() {
+        return m_world->getComponent<T>(m_id);
+    }
+
+    template <typename T>
+    [[nodiscard]] const T* getComponent() const {
+        return m_world->getComponent<T>(m_id);
+    }
+
+    template <typename T>
+    [[nodiscard]] bool hasComponent() const noexcept {
+        return m_world->hasComponent<T>(m_id);
+    }
+
+    template <typename T>
+    void removeComponent() {
+        m_world->removeComponent<T>(m_id);
+    }
+
+    void destroy() {
+        if (isValid()) {
+            m_world->destroyEntity(m_id);
+        }
+    }
+
+    bool operator==(const Entity& rhs) const noexcept { return m_id == rhs.m_id && m_world == rhs.m_world; }
+    bool operator!=(const Entity& rhs) const noexcept { return !(*this == rhs); }
+
+private:
+    EntityId m_id{kInvalidEntityId};
+    World* m_world{nullptr};
+};
+
+} // namespace engine::ecs

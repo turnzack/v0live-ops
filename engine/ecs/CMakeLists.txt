@@ -1,6 +1,13 @@
 add_library(engine_ecs STATIC
-    include/engine/ecs/world.hpp
-    src/world.cpp
+    include/engine/ecs/Components.hpp
+    include/engine/ecs/World.hpp
+    include/engine/ecs/SystemScheduler.hpp
+    include/engine/ecs/Scene.hpp
+    include/engine/ecs/SceneSerializer.hpp
+    src/World.cpp
+    src/SystemScheduler.cpp
+    src/Scene.cpp
+    src/SceneSerializer.cpp
 )
 
 target_include_directories(engine_ecs PUBLIC

@@ -5,6 +5,8 @@ add_executable(unit_tests
     TestLog.cpp
     TestMath.cpp
     TestTimeAndConfig.cpp
+    TestECS.cpp
+    TestSceneSerialization.cpp
 )
 
 target_link_libraries(unit_tests PRIVATE

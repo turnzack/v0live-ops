@@ -1,4 +1,4 @@
-#include "engine/ecs/world.hpp"
+#include "engine/ecs/World.hpp"
 #include <iostream>
 #include <string_view>
 #include <functional>
@@ -23,16 +23,18 @@ namespace test {
         } \
     } while (false)
 
-TEST_CASE(ECS_EntityCreation) {
+TEST_CASE(ECS_BasicEntityCreation) {
     engine::ecs::World world;
     CHECK(world.entityCount() == 0);
 
-    auto e1 = world.createEntity();
-    CHECK(e1 == 1);
+    auto e1 = world.createEntity("TestEntity1");
+    CHECK(e1.isValid());
+    CHECK(e1.getId() == 1);
     CHECK(world.entityCount() == 1);
 
-    auto e2 = world.createEntity();
-    CHECK(e2 == 2);
+    auto e2 = world.createEntity("TestEntity2");
+    CHECK(e2.isValid());
+    CHECK(e2.getId() == 2);
     CHECK(world.entityCount() == 2);
 
     return true;

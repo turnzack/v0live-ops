@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "sceneName": "Level_01_Platformer",
+  "sceneGuid": "c8a41285-d6eb-42f7-b248-c87fa962e08a",
+  "entities": [
+    {
+      "id": "e4f8d9b2-3c1a-4e89-a256-829d5b7a1c3e",
+      "tag": "Player",
+      "transform": {
+        "position": {"x": 100.0000, "y": 200.0000, "z": 0.0000},
+        "rotation": {"x": 0.0000, "y": 0.0000, "z": 0.0000},
+        "scale": {"x": 1.0000, "y": 1.0000, "z": 1.0000}
+      },
+      "sprite": {
+        "textureGuid": "00000000-0000-0000-0000-000000000000",
+        "size": {"x": 32.0000, "y": 48.0000},
+        "colorTint": {"x": 0.2000, "y": 0.8000, "z": 1.0000, "w": 1.0000},
+        "sortingLayer": 10,
+        "flipX": false,
+        "flipY": false
+      },
+      "movement": {
+        "speed": 220.0000,
+        "velocity": {"x": 0.0000, "y": 0.0000}
+      }
+    },
+    {
+      "id": "7b5c8d1e-9a2f-45b6-9e12-3489c7d1e56a",
+      "tag": "Ground_Platform",
+      "transform": {
+        "position": {"x": 400.0000, "y": 550.0000, "z": 0.0000},
+        "rotation": {"x": 0.0000, "y": 0.0000, "z": 0.0000},
+        "scale": {"x": 800.0000, "y": 40.0000, "z": 1.0000}
+      },
+      "sprite": {
+        "textureGuid": "00000000-0000-0000-0000-000000000000",
+        "size": {"x": 1.0000, "y": 1.0000},
+        "colorTint": {"x": 0.3000, "y": 0.7000, "z": 0.3000, "w": 1.0000},
+        "sortingLayer": 1,
+        "flipX": false,
+        "flipY": false
+      }
+    }
+  ]
+}
