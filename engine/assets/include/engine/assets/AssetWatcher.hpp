@@ -53,7 +53,7 @@ public:
         const std::string& directory,
         const std::string& filename,
         efsw::Action action,
-        std::string oldFilename = ""
+        const std::string& oldFilename = ""
     ) override;
 
     void processPendingChanges();

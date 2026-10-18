@@ -77,8 +77,8 @@ void PhysicsWorld2D::syncFromEcs(World& world) {
 
             b2ShapeDef shapeDef = b2DefaultShapeDef();
             shapeDef.density = collider.density;
-            shapeDef.friction = collider.friction;
-            shapeDef.restitution = collider.restitution;
+            shapeDef.material.friction = collider.friction;
+            shapeDef.material.restitution = collider.restitution;
             shapeDef.isSensor = collider.isTrigger;
             shapeDef.enableContactEvents = collider.enableContactEvents;
             shapeDef.enableSensorEvents = collider.enableSensorEvents;

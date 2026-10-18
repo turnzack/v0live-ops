@@ -1,9 +1,11 @@
 add_library(engine_core STATIC
     src/Application.cpp
     src/Assert.cpp
+    src/Config.cpp
     src/EngineConfig.cpp
     src/GameLoop.cpp
     src/Log.cpp
+    src/Time.cpp
     src/Window.cpp
     src/GUID.cpp
     src/SHA256.cpp

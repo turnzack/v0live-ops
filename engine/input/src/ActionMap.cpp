@@ -84,7 +84,8 @@ SDL_Scancode ActionMap::stringToScancode(std::string_view name) {
 // ── Serialisation JSON ────────────────────────────────────────
 
 bool ActionMap::loadFromFile(std::string_view filePath) {
-    std::ifstream file(std::string(filePath));
+    std::string pathStr(filePath);
+    std::ifstream file(pathStr);
     if (!file.is_open()) {
         LOG_WARNING(Input, "Cannot open action map file: ", filePath);
         return false;
@@ -135,7 +136,8 @@ bool ActionMap::saveToFile(std::string_view filePath) const {
 
     root["actions"] = actionsObj;
 
-    std::ofstream file(std::string(filePath));
+    std::string pathStr(filePath);
+    std::ofstream file(pathStr);
     if (!file.is_open()) {
         LOG_ERROR(Input, "Cannot write action map to: ", filePath);
         return false;

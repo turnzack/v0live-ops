@@ -41,3 +41,4 @@ target_link_libraries(engine_unit_tests PRIVATE
 )
 
 add_test(NAME engine_unit_tests COMMAND engine_unit_tests)
+set_tests_properties(engine_unit_tests PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")

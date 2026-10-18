@@ -84,7 +84,8 @@ EngineConfig EngineConfig::fromJsonString(std::string_view jsonContent) {
 }
 
 EngineConfig EngineConfig::loadFromFile(std::string_view filePath) {
-    std::ifstream file(std::string(filePath));
+    std::string pathStr(filePath);
+    std::ifstream file(pathStr);
     if (!file.is_open()) {
         LOG_WARNING(Config, "Fichier de configuration introuvable: '", filePath, "'. Utilisation des valeurs par defaut.");
         return EngineConfig{};
@@ -97,7 +98,8 @@ EngineConfig EngineConfig::loadFromFile(std::string_view filePath) {
 }
 
 bool EngineConfig::saveToFile(std::string_view filePath) const {
-    std::ofstream file(std::string(filePath));
+    std::string pathStr(filePath);
+    std::ofstream file(pathStr);
     if (!file.is_open()) {
         LOG_ERROR(Config, "Impossible d'ecrire la configuration dans '", filePath, "'");
         return false;

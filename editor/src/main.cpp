@@ -12,7 +12,7 @@
 int main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
-    engine::core::Log::initialize();
+    engine::core::Logger::init();
 
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
         spdlog::error("SDL_Init failed: {}", SDL_GetError());

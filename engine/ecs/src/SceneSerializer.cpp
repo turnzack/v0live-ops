@@ -1,3 +1,7 @@
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
+
 #include "engine/ecs/SceneSerializer.hpp"
 #include "engine/core/Log.hpp"
 #include <fstream>
@@ -136,7 +140,8 @@ std::string SceneSerializer::serializeToString() const {
 }
 
 bool SceneSerializer::serializeToFile(std::string_view filePath) const {
-    std::ofstream file(std::string(filePath));
+    std::string pathStr(filePath);
+    std::ofstream file(pathStr);
     if (!file.is_open()) {
         LOG_ERROR(Scene, "Impossible de sauvegarder la scene vers: ", filePath);
         return false;
@@ -245,7 +250,8 @@ bool SceneSerializer::deserializeFromString(std::string_view jsonContent) {
 }
 
 bool SceneSerializer::deserializeFromFile(std::string_view filePath) {
-    std::ifstream file(std::string(filePath));
+    std::string pathStr(filePath);
+    std::ifstream file(pathStr);
     if (!file.is_open()) {
         LOG_ERROR(Scene, "Impossible d'ouvrir le fichier de scene: ", filePath);
         return false;

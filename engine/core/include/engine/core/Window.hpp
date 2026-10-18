@@ -19,6 +19,9 @@ public:
     [[nodiscard]] SDL_Window* handle() const noexcept { return window_; }
     [[nodiscard]] std::pair<int, int> size() const noexcept;
     [[nodiscard]] bool shouldClose() const noexcept { return shouldClose_; }
+    [[nodiscard]] bool isMinimized() const noexcept {
+        return window_ && (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED);
+    }
     void requestClose() noexcept { shouldClose_ = true; }
     void pollEvents();
 

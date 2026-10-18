@@ -1,3 +1,7 @@
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
+
 #include "engine/ecs/World.hpp"
 #include <algorithm>
 #include <fstream>
@@ -168,14 +172,16 @@ bool World::saveScene(std::string_view filePath) {
         root["entities"].push_back(entityJson);
     }
 
-    std::ofstream file(std::string(filePath));
+    std::string outPath(filePath);
+    std::ofstream file(outPath);
     if (!file) return false;
     file << root.dump(2) << '\n';
     return true;
 }
 
 bool World::loadScene(std::string_view filePath) {
-    std::ifstream file(std::string(filePath));
+    std::string inPath(filePath);
+    std::ifstream file(inPath);
     if (!file) return false;
 
     nlohmann::json root;

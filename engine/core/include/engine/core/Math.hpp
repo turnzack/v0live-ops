@@ -14,6 +14,10 @@ constexpr float kDegToRad = kPi / 180.0f;
 constexpr float kRadToDeg = 180.0f / kPi;
 constexpr float kEpsilon = 1e-6f;
 
+[[nodiscard]] constexpr float abs(float v) noexcept {
+    return (v < 0.0f) ? -v : v;
+}
+
 [[nodiscard]] constexpr float radians(float degrees) noexcept {
     return degrees * kDegToRad;
 }
@@ -59,7 +63,7 @@ struct Vec2 {
     constexpr Vec2& operator/=(float scalar) noexcept { x /= scalar; y /= scalar; return *this; }
 
     constexpr bool operator==(const Vec2& rhs) const noexcept {
-        return std::abs(x - rhs.x) <= kEpsilon && std::abs(y - rhs.y) <= kEpsilon;
+        return abs(x - rhs.x) <= kEpsilon && abs(y - rhs.y) <= kEpsilon;
     }
     constexpr bool operator!=(const Vec2& rhs) const noexcept { return !(*this == rhs); }
 
@@ -116,9 +120,9 @@ struct Vec3 {
     constexpr Vec3& operator/=(float scalar) noexcept { x /= scalar; y /= scalar; z /= scalar; return *this; }
 
     constexpr bool operator==(const Vec3& rhs) const noexcept {
-        return std::abs(x - rhs.x) <= kEpsilon &&
-               std::abs(y - rhs.y) <= kEpsilon &&
-               std::abs(z - rhs.z) <= kEpsilon;
+        return abs(x - rhs.x) <= kEpsilon &&
+               abs(y - rhs.y) <= kEpsilon &&
+               abs(z - rhs.z) <= kEpsilon;
     }
     constexpr bool operator!=(const Vec3& rhs) const noexcept { return !(*this == rhs); }
 
@@ -171,10 +175,10 @@ struct Vec4 {
     constexpr Vec4 operator*(float scalar) const noexcept { return {x * scalar, y * scalar, z * scalar, w * scalar}; }
 
     constexpr bool operator==(const Vec4& rhs) const noexcept {
-        return std::abs(x - rhs.x) <= kEpsilon &&
-               std::abs(y - rhs.y) <= kEpsilon &&
-               std::abs(z - rhs.z) <= kEpsilon &&
-               std::abs(w - rhs.w) <= kEpsilon;
+        return abs(x - rhs.x) <= kEpsilon &&
+               abs(y - rhs.y) <= kEpsilon &&
+               abs(z - rhs.z) <= kEpsilon &&
+               abs(w - rhs.w) <= kEpsilon;
     }
 };
 

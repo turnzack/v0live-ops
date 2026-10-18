@@ -50,7 +50,15 @@ void GPUContext::resize(std::uint32_t width, std::uint32_t height) {
 }
 
 bool GPUContext::createInstance() {
-    instance_ = wgpu::CreateInstance();
+    wgpu::InstanceFeatureName features[] = { wgpu::InstanceFeatureName::TimedWaitAny };
+    wgpu::InstanceDescriptor desc{};
+    desc.requiredFeatureCount = 1;
+    desc.requiredFeatures = features;
+    instance_ = wgpu::CreateInstance(&desc);
+
+    if (!instance_) {
+        instance_ = wgpu::CreateInstance();
+    }
 
     if (!instance_) {
         spdlog::error("Failed to create WebGPU instance.");
@@ -61,7 +69,7 @@ bool GPUContext::createInstance() {
 }
 
 bool GPUContext::createSurface(SDL_Window* window) {
-    surface_ = SDL_GetWGPUSurface(instance_, window);
+    surface_ = wgpu::Surface::Acquire(SDL_GetWGPUSurface(instance_.Get(), window));
 
     if (!surface_) {
         spdlog::error("Failed to create WebGPU surface from SDL3 window.");
@@ -94,7 +102,14 @@ bool GPUContext::createAdapter() {
         }
     );
 
-    instance_.WaitAny(future, UINT64_MAX);
+    if (instance_.WaitAny(future, UINT64_MAX) != wgpu::WaitStatus::Success) {
+        wgpu::FutureWaitInfo waitInfo{};
+        waitInfo.future = future;
+        while (!adapter_ && !waitInfo.completed) {
+            instance_.WaitAny(1, &waitInfo, 0);
+            instance_.ProcessEvents();
+        }
+    }
 
     return static_cast<bool>(adapter_);
 }
@@ -133,7 +148,14 @@ bool GPUContext::createDevice() {
         }
     );
 
-    instance_.WaitAny(future, UINT64_MAX);
+    if (instance_.WaitAny(future, UINT64_MAX) != wgpu::WaitStatus::Success) {
+        wgpu::FutureWaitInfo waitInfo{};
+        waitInfo.future = future;
+        while (!device_ && !waitInfo.completed) {
+            instance_.WaitAny(1, &waitInfo, 0);
+            instance_.ProcessEvents();
+        }
+    }
 
     return static_cast<bool>(device_);
 }
@@ -163,7 +185,8 @@ void GPUContext::configureSurface() {
 bool GPUContext::beginFrame(wgpu::SurfaceTexture& surfaceTexture) {
     surface_.GetCurrentTexture(&surfaceTexture);
 
-    if (surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::Success) {
+    if (surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::SuccessOptimal &&
+        surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::SuccessSuboptimal) {
         return false;
     }
 

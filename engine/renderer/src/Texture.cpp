@@ -38,13 +38,13 @@ bool Texture::loadFromFile(const std::string& path, wgpu::Device device) {
 
     texture_ = device.CreateTexture(&descriptor);
 
-    wgpu::ImageCopyTexture destination{};
+    wgpu::TexelCopyTextureInfo destination{};
     destination.texture = texture_;
     destination.mipLevel = 0;
     destination.origin = {0, 0, 0};
     destination.aspect = wgpu::TextureAspect::All;
 
-    wgpu::TextureDataLayout layout{};
+    wgpu::TexelCopyBufferLayout layout{};
     layout.offset = 0;
     layout.bytesPerRow = static_cast<std::uint32_t>(width_ * 4);
     layout.rowsPerImage = static_cast<std::uint32_t>(height_);

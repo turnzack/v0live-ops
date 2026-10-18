@@ -8,11 +8,19 @@ namespace engine {
 
 void InputManager::beginFrame() {
     previous_ = current_;
+    previousKeys_ = currentKeys_;
 }
 
 bool InputManager::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
         const bool down = event.type == SDL_EVENT_KEY_DOWN;
+
+        if (down) {
+            currentKeys_.insert(event.key.scancode);
+        } else {
+            currentKeys_.erase(event.key.scancode);
+        }
+
         const auto iterator = bindings_.find(event.key.key);
 
         if (iterator != bindings_.end()) {
@@ -41,6 +49,18 @@ bool InputManager::wasReleased(InputAction action) const noexcept {
     const std::uint32_t mask = 1u << static_cast<std::uint32_t>(action);
 
     return (current_ & mask) == 0 && (previous_ & mask) != 0;
+}
+
+bool InputManager::isKeyDown(SDL_Scancode key) const noexcept {
+    return currentKeys_.contains(key);
+}
+
+bool InputManager::isKeyPressed(SDL_Scancode key) const noexcept {
+    return currentKeys_.contains(key) && !previousKeys_.contains(key);
+}
+
+bool InputManager::isKeyReleased(SDL_Scancode key) const noexcept {
+    return !currentKeys_.contains(key) && previousKeys_.contains(key);
 }
 
 glm::vec2 InputManager::movementAxis() const noexcept {

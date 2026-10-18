@@ -15,19 +15,19 @@ bool AudioEngine::initialize() {
         return false;
     }
 
-    masterGroup_ = ma_engine_get_master_sound_group(&engine_);
+    masterGroup_ = nullptr;
 
-    if (ma_sound_group_init(&engine_, 0, masterGroup_, &musicGroupStorage_) != MA_SUCCESS) {
+    if (ma_sound_group_init(&engine_, 0, nullptr, &musicGroupStorage_) != MA_SUCCESS) {
         spdlog::error("Failed to create Music group.");
         return false;
     }
 
-    if (ma_sound_group_init(&engine_, 0, masterGroup_, &sfxGroupStorage_) != MA_SUCCESS) {
+    if (ma_sound_group_init(&engine_, 0, nullptr, &sfxGroupStorage_) != MA_SUCCESS) {
         spdlog::error("Failed to create SFX group.");
         return false;
     }
 
-    if (ma_sound_group_init(&engine_, 0, masterGroup_, &uiGroupStorage_) != MA_SUCCESS) {
+    if (ma_sound_group_init(&engine_, 0, nullptr, &uiGroupStorage_) != MA_SUCCESS) {
         spdlog::error("Failed to create UI group.");
         return false;
     }
@@ -106,6 +106,15 @@ void AudioEngine::stopMusic() {
 }
 
 void AudioEngine::setBusVolume(AudioBus bus, float volume) {
+    if (!initialized_) {
+        return;
+    }
+
+    if (bus == AudioBus::Master) {
+        ma_engine_set_volume(&engine_, volume);
+        return;
+    }
+
     ma_sound_group* target = group(bus);
     if (target != nullptr) {
         ma_sound_group_set_volume(target, volume);
@@ -113,22 +122,28 @@ void AudioEngine::setBusVolume(AudioBus bus, float volume) {
 }
 
 float AudioEngine::busVolume(AudioBus bus) const {
+    if (!initialized_) {
+        return 0.0f;
+    }
+
+    if (bus == AudioBus::Master) {
+        return ma_engine_get_volume(const_cast<ma_engine*>(&engine_));
+    }
+
     const ma_sound_group* target = nullptr;
 
     switch (bus) {
         case AudioBus::Music: target = musicGroup_; break;
         case AudioBus::Sfx:   target = sfxGroup_;   break;
         case AudioBus::Ui:    target = uiGroup_;    break;
-        default:              target = masterGroup_; break;
+        default:              break;
     }
 
     if (target == nullptr) {
         return 0.0f;
     }
 
-    float volume = 0.0f;
-    ma_sound_group_get_volume(const_cast<ma_sound_group*>(target), &volume);
-    return volume;
+    return ma_sound_group_get_volume(target);
 }
 
 ma_sound_group* AudioEngine::group(AudioBus bus) {

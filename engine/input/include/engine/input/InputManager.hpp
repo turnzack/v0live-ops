@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace engine {
 
@@ -29,6 +30,10 @@ public:
     [[nodiscard]] bool wasPressed(InputAction action) const noexcept;
     [[nodiscard]] bool wasReleased(InputAction action) const noexcept;
 
+    [[nodiscard]] bool isKeyDown(SDL_Scancode key) const noexcept;
+    [[nodiscard]] bool isKeyPressed(SDL_Scancode key) const noexcept;
+    [[nodiscard]] bool isKeyReleased(SDL_Scancode key) const noexcept;
+
     [[nodiscard]] glm::vec2 movementAxis() const noexcept;
 
     void bindKey(SDL_Keycode key, InputAction action);
@@ -38,6 +43,9 @@ public:
 private:
     std::uint32_t current_ = 0;
     std::uint32_t previous_ = 0;
+
+    std::unordered_set<SDL_Scancode> currentKeys_;
+    std::unordered_set<SDL_Scancode> previousKeys_;
 
     std::unordered_map<SDL_Keycode, InputAction> bindings_;
 

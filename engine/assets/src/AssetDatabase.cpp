@@ -77,9 +77,7 @@ std::string AssetDatabase::computeSha256(const std::filesystem::path& path) {
     if (!file) {
         return {};
     }
-    std::string hash;
-    picosha2::hash256(file, hash);
-    return picosha2::bytes_to_hex_string(hash.begin(), hash.end());
+    return picosha2::hash256_hex_string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 #else
     return core::SHA256::hashFile(path.string());
 #endif

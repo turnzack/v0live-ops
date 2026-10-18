@@ -7,6 +7,11 @@
 #include <any>
 #include <functional>
 #include <vector>
+#include <optional>
+
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
 
 namespace engine::ecs {
 
@@ -71,9 +76,7 @@ public:
     }
 
     template <typename T, typename... Args>
-    T& add(const Entity& entity, Args&&... args) {
-        return addComponent<T>(entity.getId(), std::forward<Args>(args)...);
-    }
+    T& add(const Entity& entity, Args&&... args);
 
     template <typename T1, typename... Rest, typename Func>
     void forEach(Func&& func) {
@@ -110,14 +113,10 @@ public:
     [[nodiscard]] bool isValid(const Entity& entity) const noexcept;
 
     template <typename T>
-    [[nodiscard]] T* tryGet(const Entity& entity) {
-        return entity.isValid() ? getComponent<T>(entity.getId()) : nullptr;
-    }
+    [[nodiscard]] T* tryGet(const Entity& entity);
 
     template <typename T>
-    [[nodiscard]] const T* tryGet(const Entity& entity) const {
-        return entity.isValid() ? getComponent<T>(entity.getId()) : nullptr;
-    }
+    [[nodiscard]] const T* tryGet(const Entity& entity) const;
 
     bool saveScene(std::string_view filePath);
     bool loadScene(std::string_view filePath);
@@ -211,6 +210,21 @@ private:
     EntityId m_id{kInvalidEntityId};
     World* m_world{nullptr};
 };
+
+template <typename T, typename... Args>
+inline T& World::add(const Entity& entity, Args&&... args) {
+    return addComponent<T>(entity.getId(), std::forward<Args>(args)...);
+}
+
+template <typename T>
+inline T* World::tryGet(const Entity& entity) {
+    return entity.isValid() ? getComponent<T>(entity.getId()) : nullptr;
+}
+
+template <typename T>
+inline const T* World::tryGet(const Entity& entity) const {
+    return entity.isValid() ? getComponent<T>(entity.getId()) : nullptr;
+}
 
 } // namespace engine::ecs
 

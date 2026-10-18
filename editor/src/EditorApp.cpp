@@ -19,8 +19,12 @@ bool EditorApp::initialize(SDL_Window* window) {
     ImGui::CreateContext();
 
     ImGuiIO& io = ImGui::GetIO();
+#ifdef ImGuiConfigFlags_DockingEnable
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+#endif
+#ifdef ImGuiConfigFlags_ViewportsEnable
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+#endif
 
     if (!ImGui_ImplSDL3_InitForOther(window)) {
         spdlog::error("Failed to initialize ImGui SDL3 backend.");
@@ -32,9 +36,9 @@ bool EditorApp::initialize(SDL_Window* window) {
     }
 
     ImGui_ImplWGPU_InitInfo initInfo{};
-    initInfo.Device = gpu_.device();
+    initInfo.Device = gpu_.device().Get();
     initInfo.NumFramesInFlight = 3;
-    initInfo.RenderTargetFormat = gpu_.surfaceFormat();
+    initInfo.RenderTargetFormat = static_cast<WGPUTextureFormat>(gpu_.surfaceFormat());
 
     if (!ImGui_ImplWGPU_Init(&initInfo)) {
         spdlog::error("Failed to initialize ImGui WebGPU backend.");
@@ -220,21 +224,26 @@ void EditorApp::drawDockspace() {
 
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
+#if defined(IMGUI_HAS_VIEWPORT) || defined(ImGuiConfigFlags_ViewportsEnable)
     ImGui::SetNextWindowViewport(viewport->ID);
+#endif
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-    ImGui::Begin("DockSpace", nullptr,
-        ImGuiWindowFlags_MenuBar |
-        ImGuiWindowFlags_NoDocking |
+    ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar |
         ImGuiWindowFlags_NoTitleBar |
         ImGuiWindowFlags_NoCollapse |
         ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoBringToFrontOnFocus |
-        ImGuiWindowFlags_NoNavFocus
-    );
+        ImGuiWindowFlags_NoNavFocus;
+
+#ifdef ImGuiWindowFlags_NoDocking
+    windowFlags |= ImGuiWindowFlags_NoDocking;
+#endif
+
+    ImGui::Begin("DockSpace", nullptr, windowFlags);
 
     ImGui::PopStyleVar(2);
 
@@ -278,11 +287,13 @@ void EditorApp::drawDockspace() {
         ImGui::EndMenuBar();
     }
 
+#if defined(IMGUI_HAS_DOCK) || defined(ImGuiDockNodeFlags_None)
     ImGui::DockSpace(
         ImGui::GetID("MainDockSpace"),
         ImVec2(0.0f, 0.0f),
         ImGuiDockNodeFlags_None
     );
+#endif
 
     ImGui::End();
 }

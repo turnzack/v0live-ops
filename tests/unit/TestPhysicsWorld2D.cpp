@@ -11,12 +11,12 @@ TEST_CASE("Dynamic body falls under gravity") {
 
     const Entity entity = world.createEntity("Box");
     auto& transform = world.add<TransformComponent>(entity);
-    transform.position = glm::vec3(0.0f, 10.0f, 0.0f);
+    transform.position = {0.0f, 10.0f, 0.0f};
 
     world.add<RigidBody2DComponent>(entity);
     auto& collider = world.add<Collider2DComponent>(entity);
     collider.type = Collider2DType::Box;
-    collider.size = glm::vec2(1.0f, 1.0f);
+    collider.size = {1.0f, 1.0f};
 
     physics.syncFromEcs(world);
 

@@ -2,6 +2,7 @@
 
 #include "engine/core/GUID.hpp"
 #include "engine/core/Math.hpp"
+#include <glm/glm.hpp>
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -69,8 +70,6 @@ struct MovementComponent {
     MovementComponent() = default;
     explicit MovementComponent(float inSpeed) : speed(inSpeed) {}
 };
-
-#include <glm/glm.hpp>
 
 // 6. Hiérarchie Scène (Relations Parent / Enfants)
 struct HierarchyComponent {

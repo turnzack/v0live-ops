@@ -35,7 +35,7 @@ void AssetWatcher::handleFileAction(
     const std::string& directory,
     const std::string& filename,
     efsw::Action action,
-    std::string
+    const std::string&
 ) {
     if (action != efsw::Actions::Modified && action != efsw::Actions::Add && action != efsw::Actions::Moved) {
         return;

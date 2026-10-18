@@ -17,7 +17,7 @@ TEST_CASE("Character jumps when grounded") {
 
     const Entity player = world.createEntity("Player");
     auto& transform = world.add<TransformComponent>(player);
-    transform.position = glm::vec3(0.0f, 1.0f, 0.0f);
+    transform.position = {0.0f, 1.0f, 0.0f};
 
     world.add<RigidBody2DComponent>(player);
     world.add<Collider2DComponent>(player);

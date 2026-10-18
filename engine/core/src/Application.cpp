@@ -3,8 +3,21 @@
 
 namespace engine::core {
 
+namespace {
+engine::WindowConfig toEngineWindowConfig(const engine::core::WindowConfig& cfg) {
+    engine::WindowConfig out;
+    out.title = cfg.title;
+    out.width = static_cast<int>(cfg.width);
+    out.height = static_cast<int>(cfg.height);
+    out.resizable = cfg.resizable;
+    out.vsync = cfg.vsync;
+    return out;
+}
+}
+
 Application::Application(std::string_view configPath)
     : m_config(EngineConfig::loadFromFile(configPath))
+    , m_window(toEngineWindowConfig(m_config.window))
     , m_time(m_config.simulation.fixedTimestepHz, m_config.simulation.maxAccumulatedSeconds) {
     Logger::init("engine.log");
     LOG_INFO(Engine, "Demarrage de l'Application: ", m_config.window.title);
@@ -21,14 +34,13 @@ void Application::stop() noexcept {
 }
 
 int Application::run() {
-    if (!m_window.init(m_config.window)) {
+    if (!m_window.handle()) {
         LOG_FATAL(Engine, "Echec d'initialisation de la fenetre");
         return 1;
     }
 
     if (!onInit()) {
         LOG_FATAL(Engine, "Echec de onInit()");
-        m_window.shutdown();
         return 1;
     }
 
@@ -66,7 +78,6 @@ int Application::run() {
     }
 
     onShutdown();
-    m_window.shutdown();
     LOG_INFO(Engine, "Boucle principale terminee proprement");
     return 0;
 }

@@ -12,6 +12,7 @@ target_include_directories(engine_physics2d PUBLIC
 target_link_libraries(engine_physics2d PUBLIC
     engine_core
     engine_ecs
+    engine_input
     box2d::box2d
     glm::glm
     spdlog::spdlog
